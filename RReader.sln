@@ -5,12 +5,20 @@ VisualStudioVersion = 16.0.31321.278
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RReader.Android", "RReader\RReader.Android\RReader.Android.csproj", "{24AC67FA-B2D4-4D70-8FF3-CBD9D3DA967F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RReader", "RReader\RReader\RReader.csproj", "{582B5537-49FB-4D1A-91C4-F5EBFA2F57F1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RReader", "RReader\RReader\RReader.csproj", "{582B5537-49FB-4D1A-91C4-F5EBFA2F57F1}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{4094871E-08B0-4EEF-9EB0-9FA8769F93AF}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QuickCheckWpf", "QuickCheckWpf\QuickCheckWpf.csproj", "{28369482-41AE-4A6F-948C-E1EBF0958CFF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TextPaint", "TextPaint\TextPaint.csproj", "{B6A7D7C3-BD33-4165-AAB4-137C925BE4A9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fb2", "Fb2\Fb2.csproj", "{E480954D-F794-4BB4-85F8-CD83A76D2E64}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fb2.Tests", "Fb2.Tests\Fb2.Tests.csproj", "{1C09C6B0-B4BA-4750-8D7E-4664A7BE3D3A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,6 +38,22 @@ Global
 		{582B5537-49FB-4D1A-91C4-F5EBFA2F57F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{582B5537-49FB-4D1A-91C4-F5EBFA2F57F1}.Release|Any CPU.Build.0 = Release|Any CPU
 		{582B5537-49FB-4D1A-91C4-F5EBFA2F57F1}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{28369482-41AE-4A6F-948C-E1EBF0958CFF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{28369482-41AE-4A6F-948C-E1EBF0958CFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{28369482-41AE-4A6F-948C-E1EBF0958CFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{28369482-41AE-4A6F-948C-E1EBF0958CFF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B6A7D7C3-BD33-4165-AAB4-137C925BE4A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B6A7D7C3-BD33-4165-AAB4-137C925BE4A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B6A7D7C3-BD33-4165-AAB4-137C925BE4A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B6A7D7C3-BD33-4165-AAB4-137C925BE4A9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E480954D-F794-4BB4-85F8-CD83A76D2E64}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E480954D-F794-4BB4-85F8-CD83A76D2E64}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E480954D-F794-4BB4-85F8-CD83A76D2E64}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E480954D-F794-4BB4-85F8-CD83A76D2E64}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1C09C6B0-B4BA-4750-8D7E-4664A7BE3D3A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1C09C6B0-B4BA-4750-8D7E-4664A7BE3D3A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1C09C6B0-B4BA-4750-8D7E-4664A7BE3D3A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1C09C6B0-B4BA-4750-8D7E-4664A7BE3D3A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

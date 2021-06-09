@@ -1,4 +1,4 @@
 ﻿[*.cs]
 
 # IDE0008: Use explicit type
-csharp_style_var_for_built_in_types = true
+dotnet_diagnostic.IDE0008.severity = none

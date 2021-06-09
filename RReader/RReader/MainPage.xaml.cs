@@ -21,7 +21,6 @@ namespace RReader
             InitializeComponent();
         }
 
-        int count = 0;
         private async void Handle_Clicked(object sender, System.EventArgs e)
         {
             var status = await Permissions.CheckStatusAsync<Permissions.StorageRead>();
@@ -37,7 +36,23 @@ namespace RReader
 
             var text = File.ReadAllText("/sdcard/Download/1.fb2");
             var doc = XDocument.Parse(text);
-            ((Button)sender).Text = doc.Root.Name.LocalName;
+            ParseFb2(doc.Root.Elements());
+        }
+
+        private void ParseFb2(IEnumerable<XElement> nodes)
+        {
+            foreach (var node in nodes)
+            {
+                switch (node.Name.LocalName)
+                {
+                    case "FictionBook":
+                    case "body":
+                        ParseFb2(node.Elements());
+                        break;
+
+                    
+                }
+            }
         }
 
         private void SKCanvasView_OnPaintSurface(object sender, SKPaintSurfaceEventArgs e)
@@ -60,6 +75,8 @@ namespace RReader
             paint.Style = SKPaintStyle.Fill;
             paint.Color = SKColors.Blue;
             canvas.DrawCircle(e.Info.Width / 2, e.Info.Height / 2, 100, paint);
+
+            Painter.Paint(canvas);
         }
     }
 }
