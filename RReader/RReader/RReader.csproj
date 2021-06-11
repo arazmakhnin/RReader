@@ -17,6 +17,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\TextPaint\TextPaint.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="SkiaSharp.Views.Forms">
       <HintPath>..\..\..\..\Users\Anton\.nuget\packages\skiasharp.views.forms\2.80.2\ref\monoandroid1.0\SkiaSharp.Views.Forms.dll</HintPath>
     </Reference>

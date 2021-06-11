@@ -24,7 +24,7 @@ namespace QuickCheckWpf
     /// </summary>
     public partial class MainWindow : Window
     {
-        private FictionBook _book;
+        private readonly FictionBook _book;
 
         public MainWindow()
         {
@@ -34,7 +34,7 @@ namespace QuickCheckWpf
 
         private void SKElement_OnPaintSurface(object? sender, SKPaintSurfaceEventArgs e)
         {
-            Painter.Paint(_book, e.Surface.Canvas);
+            Painter.Paint(_book, e.Surface.Canvas, e.Info);
         }
     }
 }

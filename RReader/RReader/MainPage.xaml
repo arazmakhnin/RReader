@@ -11,7 +11,7 @@
 
         <Button Text="Click Me" Clicked="Handle_Clicked" />
 
-        <skia:SKCanvasView PaintSurface="SKCanvasView_OnPaintSurface" VerticalOptions="FillAndExpand" BackgroundColor="DeepPink"/>
+        <skia:SKCanvasView x:Name="CanvasView" PaintSurface="SKCanvasView_OnPaintSurface" VerticalOptions="FillAndExpand" BackgroundColor="DeepPink"/>
     </StackLayout>
 
 </ContentPage>
