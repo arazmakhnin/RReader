@@ -14,6 +14,11 @@ namespace Fb2.Specification
         }
     }
 
+    public class Title : BaseItem
+    {
+        public Title(IReadOnlyCollection<BaseItem> items) : base(items) { }
+    }
+
     public class Section : BaseItem
     {
         public Section(IReadOnlyCollection<BaseItem> items) : base(items) { }
@@ -22,6 +27,11 @@ namespace Fb2.Specification
     public class Paragraph : BaseItem
     {
         public Paragraph(IReadOnlyCollection<BaseItem> items) : base(items) { }
+    }
+
+    public class EmptyLine : BaseItem
+    {
+        public EmptyLine() : base(Array.Empty<BaseItem>()) { }
     }
 
     public class Text : BaseItem
@@ -40,7 +50,9 @@ namespace Fb2.Specification
         {
             ["body"] = e => new Body(e),
             ["section"] = e => new Section(e),
+            ["title"] = e => new Title(e),
             ["p"] = e => new Paragraph(e),
+            ["empty-line"] = e => new EmptyLine()
         };
     }
 }

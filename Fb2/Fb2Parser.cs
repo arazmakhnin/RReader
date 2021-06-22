@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Xml;
 using System.Xml.Linq;
 using Fb2.Specification;
 
@@ -18,7 +17,11 @@ namespace Fb2
                 throw new Fb2ParseException("Root element is not FictionBook");
             }
 
-            return new FictionBook(Parse(doc.Root.Nodes()));
+            var ignoredTags = new List<string>();
+            var w = Stopwatch.StartNew();
+            var bookElements = Parse(doc.Root.Nodes(), ignoredTags);
+            w.Stop();
+            return new FictionBook(bookElements, new LoadInfo(ignoredTags, w.Elapsed));
         }
 
         public static FictionBook LoadFile(string fileName)
@@ -27,7 +30,9 @@ namespace Fb2
             return Load(text);
         }
 
-        private static IReadOnlyCollection<BaseItem> Parse(IEnumerable<XNode> nodes)
+        private static IReadOnlyCollection<BaseItem> Parse(
+            IEnumerable<XNode> nodes,
+            ICollection<string> ignoredTags)
         {
             var result = new List<BaseItem>();
             foreach (var node in nodes)
@@ -42,7 +47,14 @@ namespace Fb2
                 {
                     if (ItemsMapper.Map.TryGetValue(element.Name.LocalName.ToLower(), out var create))
                     {
-                        result.Add(create(Parse(element.Nodes())));
+                        result.Add(create(Parse(element.Nodes(), ignoredTags)));
+                    }
+                    else
+                    {
+                        if (!ignoredTags.Contains(element.Name.LocalName))
+                        {
+                            ignoredTags.Add(element.Name.LocalName);
+                        }
                     }
                 }
             }
