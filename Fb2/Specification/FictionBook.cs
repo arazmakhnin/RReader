@@ -30,9 +30,8 @@ namespace Fb2.Specification
             var lines = new[]
             {
                 "Time: " + LoadTime,
-                "",
-                "Ignored tags:"
-            }.Concat(IgnoredTags);
+                IgnoredTags.Any() ? "Ignored tags:" : "No ignored tags"
+            }.Concat(IgnoredTags.Select(t => $"  {t}"));
 
             return string.Join(Environment.NewLine, lines);
         }

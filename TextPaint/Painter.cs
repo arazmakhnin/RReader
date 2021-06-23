@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using Fb2.Specification;
 using SkiaSharp;
 
 namespace TextPaint
@@ -8,14 +10,23 @@ namespace TextPaint
     {
         public static void Paint(ICurrentPage currentPage, SKCanvas canvas, SKImageInfo info)
         {
-            var point = new SKPoint(0, 0);
+            Paint(currentPage, canvas, info, out _);
+        }
 
+        public static void Paint(ICurrentPage currentPage, SKCanvas canvas, SKImageInfo info, out LoadInfo loadInfo)
+        {
+            var point = new SKPoint(0, 0);
+            
             canvas.DrawRect(0, 0, info.Width, info.Height, new SKPaint
             {
                 Color = SKColors.Black
             });
 
-            foreach (var drawingItem in currentPage.GetPage(info.Width, info.Height))
+            var page = currentPage.GetPage(info.Width, info.Height);
+
+            var ignoredTags = new List<string>();
+            var w = Stopwatch.StartNew();
+            foreach (var drawingItem in page)
             {
                 switch (drawingItem)
                 {
@@ -30,10 +41,17 @@ namespace TextPaint
                         break;
 
                     default:
-                        throw new ArgumentOutOfRangeException(nameof(drawingItem),
-                            $"Unknown type: {drawingItem.GetType().Name}");
+                        if (!ignoredTags.Contains(drawingItem.GetType().Name))
+                        {
+                            ignoredTags.Add(drawingItem.GetType().Name);
+                        }
+
+                        break;
                 }
             }
+
+            w.Stop();
+            loadInfo = new LoadInfo(ignoredTags, w.Elapsed);
         }
     }
 }
