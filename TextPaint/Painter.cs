@@ -1,48 +1,28 @@
-﻿using System;
-using System.Drawing;
-using System.Linq;
-using Fb2.Specification;
+﻿using System.Collections.Generic;
 using SkiaSharp;
 
 namespace TextPaint
 {
-    public class Painter
+    public static class Painter
     {
-        public static void Paint(FictionBook book, SKCanvas canvas, SKImageInfo info)
+        public static void Paint(TextSplitter splitter, SKCanvas canvas, SKImageInfo info)
         {
-            var text = FindFirstText(book)?.Value;
-            if (text == null)
-            {
-                throw new InvalidOperationException("Text not found");
-            }
-
-            var paint = new SKPaint { TextSize = 20 };
+            var paint = new SKPaint { TextSize = 20, Color = SKColors.White };
             var point = new SKPoint(0, 0);
 
-            foreach (var drawingText in TextSplitter.Split(text, paint, info.Width))
+            canvas.DrawRect(0, 0, info.Width, info.Height, new SKPaint()
             {
-                point.Y += paint.TextSize;
-                canvas.DrawText(drawingText.Text, point, paint);
-            }
-        }
+                Color = SKColors.Black
+            });
 
-        private static Text FindFirstText(BaseItem item)
-        {
-            if (item is Text text)
+            foreach (var drawingItem in splitter.GetPage(paint, info.Width, info.Height))
             {
-                return text;
-            }
-
-            foreach (var node in item.Items)
-            {
-                var z = FindFirstText(node);
-                if (z != null)
+                if (drawingItem is DrawingText text)
                 {
-                    return z;
+                    point.Y += paint.TextSize;
+                    canvas.DrawText(text.Text, point, paint);
                 }
             }
-
-            return null;
         }
     }
 }

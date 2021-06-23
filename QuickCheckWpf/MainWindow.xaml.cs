@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -24,17 +25,27 @@ namespace QuickCheckWpf
     /// </summary>
     public partial class MainWindow : Window
     {
-        private readonly FictionBook _book;
+        private readonly TextSplitter _splitter;
 
         public MainWindow()
         {
             InitializeComponent();
-            _book = Fb2Parser.LoadFile("c:\\projects\\1.fb2");
+            var book = Fb2Parser.LoadFile("c:\\projects\\1.fb2");
+            File.WriteAllText("c:\\projects\\1.fb2.loadinfo", book.LoadInfo.ToString());
+
+            var readingInfo = new ReadingInfo(0, 0);
+            _splitter = new TextSplitter(book, readingInfo);
         }
 
         private void SKElement_OnPaintSurface(object? sender, SKPaintSurfaceEventArgs e)
         {
-            Painter.Paint(_book, e.Surface.Canvas, e.Info);
+            Painter.Paint(_splitter, e.Surface.Canvas, e.Info);
+        }
+
+        private void ButtonBase_OnClick(object sender, RoutedEventArgs e)
+        {
+            _splitter.NextPage();
+            CanvasView.InvalidateVisual();
         }
     }
 }

@@ -2,13 +2,15 @@
 
 namespace TextPaint
 {
-    public class ReadingInfo
+    public readonly struct ReadingInfo
     {
-        public FictionBook Book { get; }
+        public int ItemIndex { get; }
+        public int LineIndex { get; }
 
-        public ReadingInfo(FictionBook book)
+        public ReadingInfo(int itemIndex, int lineIndex)
         {
-            Book = book;
+            ItemIndex = itemIndex;
+            LineIndex = lineIndex;
         }
     }
 }

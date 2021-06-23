@@ -8,6 +8,20 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
-        <skia:SKElement VerticalAlignment="Stretch" PaintSurface="SKElement_OnPaintSurface"></skia:SKElement>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"></RowDefinition>
+            <RowDefinition Height="10*"></RowDefinition>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="1" Content="Next page" Click="ButtonBase_OnClick"></Button>
+        </Grid>
+
+        <skia:SKElement Grid.Row="1" VerticalAlignment="Stretch" PaintSurface="SKElement_OnPaintSurface" x:Name="CanvasView"></skia:SKElement>
     </Grid>
 </Window>
