@@ -29,6 +29,11 @@ namespace Fb2.Specification
         public Paragraph(IReadOnlyCollection<BaseItem> items) : base(items) { }
     }
 
+    public class Strong : BaseItem
+    {
+        public Strong(IReadOnlyCollection<BaseItem> items) : base(items) { }
+    }
+
     public class EmptyLine : BaseItem
     {
         public EmptyLine() : base(Array.Empty<BaseItem>()) { }
@@ -52,6 +57,7 @@ namespace Fb2.Specification
             ["section"] = e => new Section(e),
             ["title"] = e => new Title(e),
             ["p"] = e => new Paragraph(e),
+            ["strong"] = e => new Strong(e),
             ["empty-line"] = e => new EmptyLine()
         };
     }

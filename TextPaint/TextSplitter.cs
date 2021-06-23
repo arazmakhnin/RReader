@@ -11,7 +11,11 @@ namespace TextPaint
     {
         private const int EmptyLineSize = 10;
 
-        private SKPaint _regularTextPaint = new SKPaint(new SKFont { Size = 20 });
+        private SKPaint _regularTextPaint = new SKPaint(new SKFont
+        {
+            Typeface = SKTypeface.Default,
+            Size = 20
+        });
 
         private readonly BaseItem[] _book;
         private ReadingInfo _currentPage;
@@ -43,6 +47,8 @@ namespace TextPaint
 
             var result = new List<DrawingItem>();
 
+            var isStrong = false;
+
             var currentItemIndex = _currentPage.ItemIndex;
             var currentLineIndex = 0;
             var lookingForStart = true;
@@ -56,9 +62,9 @@ namespace TextPaint
                     case Text text:
                     {
                         currentLineIndex = 0;
-                        foreach (var line in ProcessText(text, _regularTextPaint, maxWidth))
+                        foreach (var line in ProcessText(text, isStrong, maxWidth))
                         {
-                            if (height + _regularTextPaint.TextSize > maxHeight)
+                            if (height + line.Paint.TextSize > maxHeight)
                             {
                                 stopProcessing = true;
                                 break;
@@ -74,8 +80,9 @@ namespace TextPaint
 
                             if (!lookingForStart)
                             {
-                                height += _regularTextPaint.TextSize;
+                                height += line.Paint.TextSize;
                                 result.Add(line);
+                                result.Add(new LineBreak());
                             }
 
                             currentLineIndex++;
@@ -83,6 +90,10 @@ namespace TextPaint
 
                         break;
                     }
+
+                    case Strong _:
+                        isStrong = !isStrong;
+                        break;
 
                     case Fb2.Specification.EmptyLine _:
                         result.Add(new EmptyLine(EmptyLineSize));
@@ -126,17 +137,29 @@ namespace TextPaint
 
         private static IEnumerable<BaseItem> Flatten(BaseItem item)
         {
-            return new[] { item }.Concat(item.Items.SelectMany(Flatten));
+            var result = new[] { item }.Concat(item.Items.SelectMany(Flatten));
+            if (item is Strong)
+            {
+                result = result.Concat(new[] { item });
+            }
+
+            return result;
         }
         
-        private static IEnumerable<DrawingText> ProcessText(Text text, SKPaint paint, float maxWidth)
+        private IEnumerable<DrawingText> ProcessText(Text text, bool isStrong, float maxWidth)
         {
             var start = 0;
+
+            var paint = _regularTextPaint;
+            if (isStrong)
+            {
+                paint = new SKPaint(new SKFont(SKTypeface.FromFamilyName(_regularTextPaint.Typeface.FamilyName, SKFontStyleWeight.Bold, SKFontStyleWidth.Normal, SKFontStyleSlant.Upright), _regularTextPaint.TextSize));
+            }
 
             while (true)
             {
                 var span = text.Value.AsSpan(start);
-                var charCount = (int)paint.BreakText(span, maxWidth);
+                var charCount = (int)_regularTextPaint.BreakText(span, maxWidth);
                 if (span.Length == charCount)
                 {
                     yield return new DrawingText(span.ToString(), paint);
@@ -199,6 +222,10 @@ namespace TextPaint
             Text = text;
             Paint = paint;
         }
+    }
+
+    public class LineBreak : DrawingItem
+    {
     }
 
     public class EmptyLine : DrawingItem

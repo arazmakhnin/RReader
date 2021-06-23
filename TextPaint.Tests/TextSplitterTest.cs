@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Fb2;
-using Fb2.Specification;
 using NUnit.Framework;
 using Shouldly;
 using SkiaSharp;
@@ -29,7 +29,11 @@ namespace TextPaint.Tests
             var result = splitter.GetPage(100, 100).ToStringArray();
 
             // Assert
-            result.ShouldBe(new[] { "a" });
+            result.ShouldBe(new[]
+            {
+                "a",
+                SplitExtension.LineBreak
+            });
         }
 
         [Test]
@@ -46,8 +50,11 @@ namespace TextPaint.Tests
             result.ShouldBe(new[]
             {
                 "aaa",
+                SplitExtension.LineBreak,
                 "aaa",
-                "aaa"
+                SplitExtension.LineBreak,
+                "aaa",
+                SplitExtension.LineBreak
             });
         }
 
@@ -69,12 +76,15 @@ namespace TextPaint.Tests
             result1.ShouldBe(new[]
             {
                 "aaa",
-                "bbb"
+                SplitExtension.LineBreak,
+                "bbb",
+                SplitExtension.LineBreak
             });
 
             result2.ShouldBe(new[]
             {
-                "ccc"
+                "ccc",
+                SplitExtension.LineBreak
             });
 
             canNextPage1.ShouldBeTrue();
@@ -95,7 +105,9 @@ namespace TextPaint.Tests
             result.ShouldBe(new[]
             {
                 "aaa",
-                "bbb"
+                SplitExtension.LineBreak,
+                "bbb",
+                SplitExtension.LineBreak
             });
         }
 
@@ -113,8 +125,44 @@ namespace TextPaint.Tests
             result.ShouldBe(new[]
             {
                 "aaa",
+                SplitExtension.LineBreak,
                 SplitExtension.EmptyLine,
-                "bbb"
+                "bbb",
+                SplitExtension.LineBreak
+            });
+        }
+
+        [Test]
+        public void Test5_ShouldProcessStrongTag()
+        {
+            // Arrange
+            var splitter = CreateSplitter("<strong>aaa</strong>");
+
+            // Act
+            var result = splitter.GetPage(100, 100).ToStringArray(true);
+
+            // Assert
+            result.ShouldBe(new[]
+            {
+                "aaa-bold"
+            });
+        }
+
+        [Test]
+        public void Test6_ShouldProcessStrongTagExtended()
+        {
+            // Arrange
+            var splitter = CreateSplitter("<p>asd <strong>aaa</strong> zxc</p>");
+
+            // Act
+            var result = splitter.GetPage(100, 100).ToStringArray(true);
+
+            // Assert
+            result.ShouldBe(new[]
+            {
+                "asd ",
+                "aaa-bold",
+                " zxc"
             });
         }
 
@@ -130,16 +178,40 @@ namespace TextPaint.Tests
 
     public static class SplitExtension
     {
+        internal const string LineBreak = "line-break";
         internal const string EmptyLine = "empty-line";
 
-        public static string[] ToStringArray(this IEnumerable<DrawingItem> items)
+        public static string[] ToStringArray(this IEnumerable<DrawingItem> items, bool ignoreLineBreaks = false)
         {
-            return items.Select(i => i switch
+            var f = new SKFont();
+
+            var query = items.Select(i => i switch
             {
-                DrawingText text => text.Text,
+                DrawingText text => Stringify(text),
+                LineBreak _ => LineBreak,
                 EmptyLine _ => EmptyLine,
                 _ => throw new ArgumentOutOfRangeException(nameof(i), i, null)
-            }).ToArray();
+            });
+
+            if (ignoreLineBreaks)
+            {
+                query = query
+                    .Where(i => i != LineBreak);
+            }
+
+            return query.ToArray();
+        }
+
+        private static string Stringify(DrawingText text)
+        {
+            var builder = new StringBuilder(text.Text);
+
+            if (text.Paint.Typeface.IsBold)
+            {
+                builder.Append("-bold");
+            }
+
+            return builder.ToString();
         }
     }
 }
