@@ -6,8 +6,10 @@ using SkiaSharp;
 
 namespace TextPaint
 {
-    public class TextSplitter
+    public class TextSplitter : ICurrentPage
     {
+        private const int EmptyLineSize = 10;
+
         private readonly BaseItem[] _book;
         private ReadingInfo _currentPage;
         private ReadingInfo _nextPage;
@@ -60,6 +62,11 @@ namespace TextPaint
 
                         currentLineIndex++;
                     }
+                }
+
+                if (item is Fb2.Specification.EmptyLine)
+                {
+                    result.Add(new EmptyLine(EmptyLineSize));
                 }
 
                 currentItemIndex++;
@@ -120,6 +127,11 @@ namespace TextPaint
         }
     }
 
+    public interface ICurrentPage
+    {
+        IReadOnlyCollection<DrawingItem> GetPage(SKPaint paint, float maxWidth, float maxHeight);
+    }
+
     public class DrawingItem
     {
     }
@@ -134,7 +146,13 @@ namespace TextPaint
         }
     }
 
-    public class PageBreak : DrawingItem
+    public class EmptyLine : DrawingItem
     {
+        public int Size { get; }
+
+        public EmptyLine(int size)
+        {
+            Size = size;
+        }
     }
 }

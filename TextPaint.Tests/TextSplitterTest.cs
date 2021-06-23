@@ -77,6 +77,43 @@ namespace TextPaint.Tests
             });
         }
 
+        [Test]
+        public void Test4_ShouldIgnoreEmptySpace()
+        {
+            // Arrange
+            var maxWidth = _paint.MeasureText("aaa");
+            var splitter = CreateSplitter("<p>aaa</p>   \r\n    <p>bbb</p>");
+
+            // Act
+            var result = splitter.GetPage(_paint, maxWidth, 100).ToStringArray();
+
+            // Assert
+            result.ShouldBe(new[]
+            {
+                "aaa",
+                "bbb"
+            });
+        }
+
+        [Test]
+        public void Test5_ShouldProcessEmptyLineTag()
+        {
+            // Arrange
+            var maxWidth = _paint.MeasureText("aaa");
+            var splitter = CreateSplitter("<p>aaa</p> <empty-line /> <p>bbb</p>");
+
+            // Act
+            var result = splitter.GetPage(_paint, maxWidth, 100).ToStringArray();
+
+            // Assert
+            result.ShouldBe(new[]
+            {
+                "aaa",
+                SplitExtension.EmptyLine,
+                "bbb"
+            });
+        }
+
         private TextSplitter CreateSplitter(string text)
         {
             var readingInfo = new ReadingInfo(0, 0);
@@ -87,14 +124,14 @@ namespace TextPaint.Tests
 
     public static class SplitExtension
     {
-        internal const string PageBreak = "== break ==";
+        internal const string EmptyLine = "empty-line";
 
         public static string[] ToStringArray(this IEnumerable<DrawingItem> items)
         {
             return items.Select(i => i switch
             {
                 DrawingText text => text.Text,
-                PageBreak _ => PageBreak,
+                EmptyLine _ => EmptyLine,
                 _ => throw new ArgumentOutOfRangeException(nameof(i), i, null)
             }).ToArray();
         }
