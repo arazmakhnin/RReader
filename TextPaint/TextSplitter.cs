@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Fb2.Specification;
 using SkiaSharp;
@@ -10,9 +11,15 @@ namespace TextPaint
     {
         private const int EmptyLineSize = 10;
 
+        private SKPaint _regularTextPaint = new SKPaint(new SKFont { Size = 20 });
+
         private readonly BaseItem[] _book;
         private ReadingInfo _currentPage;
         private ReadingInfo _nextPage;
+
+#if DEBUG
+        public LoadInfo LoadInfo { get; private set; }
+#endif
 
         public TextSplitter(FictionBook book, ReadingInfo startFrom)
         {
@@ -22,8 +29,16 @@ namespace TextPaint
             _book = Flatten(body).ToArray();
         }
 
-        public IReadOnlyCollection<DrawingItem> GetPage(SKPaint paint, float maxWidth, float maxHeight)
+        public void ChangeParameters(TextParameters textParameters)
         {
+            _regularTextPaint = textParameters.RegularTextPaint ?? _regularTextPaint;
+        }
+
+        public IReadOnlyCollection<DrawingItem> GetPage(float maxWidth, float maxHeight)
+        {
+            var w = Stopwatch.StartNew();
+            var ignoredTags = new List<string>();
+
             var height = 0f;
 
             var result = new List<DrawingItem>();
@@ -31,54 +46,82 @@ namespace TextPaint
             var currentItemIndex = _currentPage.ItemIndex;
             var currentLineIndex = 0;
             var lookingForStart = true;
+            var stopProcessing = false;
             while (currentItemIndex < _book.Length)
             {
                 var item = _book[currentItemIndex];
 
-                if (item is Text text)
+                switch (item)
                 {
-                    currentLineIndex = 0;
-                    foreach (var line in ProcessText(text, paint, maxWidth))
+                    case Text text:
                     {
-                        if (height + paint.TextSize > maxHeight)
+                        currentLineIndex = 0;
+                        foreach (var line in ProcessText(text, _regularTextPaint, maxWidth))
                         {
-                            _nextPage = new ReadingInfo(currentItemIndex, currentLineIndex);
-                            return result;
-                        }
-
-                        if (lookingForStart)
-                        {
-                            if (currentLineIndex == _currentPage.LineIndex)
+                            if (height + _regularTextPaint.TextSize > maxHeight)
                             {
-                                lookingForStart = false;
+                                stopProcessing = true;
+                                break;
                             }
+
+                            if (lookingForStart)
+                            {
+                                if (currentLineIndex == _currentPage.LineIndex)
+                                {
+                                    lookingForStart = false;
+                                }
+                            }
+
+                            if (!lookingForStart)
+                            {
+                                height += _regularTextPaint.TextSize;
+                                result.Add(line);
+                            }
+
+                            currentLineIndex++;
                         }
 
-                        if (!lookingForStart)
-                        {
-                            height += paint.TextSize;
-                            result.Add(line);
-                        }
-
-                        currentLineIndex++;
+                        break;
                     }
+
+                    case Fb2.Specification.EmptyLine _:
+                        result.Add(new EmptyLine(EmptyLineSize));
+                        break;
+
+                    default:
+                        if (!ignoredTags.Contains(item.GetType().Name))
+                        {
+                            ignoredTags.Add(item.GetType().Name);
+                        }
+                        break;
                 }
 
-                if (item is Fb2.Specification.EmptyLine)
+                if (stopProcessing)
                 {
-                    result.Add(new EmptyLine(EmptyLineSize));
+                    break;
                 }
 
                 currentItemIndex++;
             }
 
             _nextPage = new ReadingInfo(currentItemIndex, currentLineIndex);
+
+            w.Stop();
+
+            LoadInfo = new LoadInfo(ignoredTags, w.Elapsed);
+
             return result;
         }
 
-        public void NextPage()
+        public bool NextPage()
         {
+            if (_nextPage.ItemIndex >= _book.Length)
+            {
+                return false;
+            }
+
             _currentPage = _nextPage;
+            return true;
         }
 
         private static IEnumerable<BaseItem> Flatten(BaseItem item)
@@ -96,18 +139,18 @@ namespace TextPaint
                 var charCount = (int)paint.BreakText(span, maxWidth);
                 if (span.Length == charCount)
                 {
-                    yield return new DrawingText(span.ToString());
+                    yield return new DrawingText(span.ToString(), paint);
                     break;
                 }
 
                 var spaceIndex = FindSpace(span, charCount);
                 if (spaceIndex == -1)
                 {
-                    yield return new DrawingText(span.ToString());
+                    yield return new DrawingText(span.ToString(), paint);
                     break;
                 }
 
-                yield return new DrawingText(text.Value.Substring(start, spaceIndex));
+                yield return new DrawingText(text.Value.Substring(start, spaceIndex), paint);
 
                 start += spaceIndex + 1;
             }
@@ -127,9 +170,19 @@ namespace TextPaint
         }
     }
 
+    public class TextParameters
+    {
+        public SKPaint RegularTextPaint { get; }
+
+        public TextParameters(SKPaint regularTextPaint)
+        {
+            RegularTextPaint = regularTextPaint;
+        }
+    }
+
     public interface ICurrentPage
     {
-        IReadOnlyCollection<DrawingItem> GetPage(SKPaint paint, float maxWidth, float maxHeight);
+        IReadOnlyCollection<DrawingItem> GetPage(float maxWidth, float maxHeight);
     }
 
     public class DrawingItem
@@ -139,10 +192,12 @@ namespace TextPaint
     public class DrawingText : DrawingItem
     {
         public string Text { get; }
+        public SKPaint Paint { get; }
 
-        public DrawingText(string text)
+        public DrawingText(string text, SKPaint paint)
         {
             Text = text;
+            Paint = paint;
         }
     }
 

@@ -8,21 +8,21 @@ namespace TextPaint
     {
         public static void Paint(ICurrentPage currentPage, SKCanvas canvas, SKImageInfo info)
         {
-            var paint = new SKPaint { TextSize = 20, Color = SKColors.White };
             var point = new SKPoint(0, 0);
 
-            canvas.DrawRect(0, 0, info.Width, info.Height, new SKPaint()
+            canvas.DrawRect(0, 0, info.Width, info.Height, new SKPaint
             {
                 Color = SKColors.Black
             });
 
-            foreach (var drawingItem in currentPage.GetPage(paint, info.Width, info.Height))
+            foreach (var drawingItem in currentPage.GetPage(info.Width, info.Height))
             {
                 switch (drawingItem)
                 {
                     case DrawingText text:
-                        point.Y += paint.TextSize;
-                        canvas.DrawText(text.Text, point, paint);
+                        text.Paint.Color = SKColors.White;
+                        point.Y += text.Paint.TextSize;
+                        canvas.DrawText(text.Text, point, text.Paint);
                         break;
 
                     case EmptyLine emptyLine:

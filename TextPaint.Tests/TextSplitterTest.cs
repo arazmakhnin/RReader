@@ -26,7 +26,7 @@ namespace TextPaint.Tests
             var splitter = CreateSplitter("a");
 
             // Act
-            var result = splitter.GetPage(_paint, 100, 100).ToStringArray();
+            var result = splitter.GetPage(100, 100).ToStringArray();
 
             // Assert
             result.ShouldBe(new[] { "a" });
@@ -40,7 +40,7 @@ namespace TextPaint.Tests
             var splitter = CreateSplitter("aaa aaa aaa");
 
             // Act
-            var result = splitter.GetPage(_paint, maxWidth, 100).ToStringArray();
+            var result = splitter.GetPage(maxWidth, 100).ToStringArray();
 
             // Assert
             result.ShouldBe(new[]
@@ -60,9 +60,10 @@ namespace TextPaint.Tests
             var splitter = CreateSplitter("aaa bbb ccc");
 
             // Act
-            var result1 = splitter.GetPage(_paint, maxWidth, maxHeight).ToStringArray();
-            splitter.NextPage();
-            var result2 = splitter.GetPage(_paint, maxWidth, maxHeight).ToStringArray();
+            var result1 = splitter.GetPage(maxWidth, maxHeight).ToStringArray();
+            var canNextPage1 = splitter.NextPage();
+            var result2 = splitter.GetPage(maxWidth, maxHeight).ToStringArray();
+            var canNextPage2 = splitter.NextPage();
 
             // Assert
             result1.ShouldBe(new[]
@@ -75,6 +76,9 @@ namespace TextPaint.Tests
             {
                 "ccc"
             });
+
+            canNextPage1.ShouldBeTrue();
+            canNextPage2.ShouldBeFalse();
         }
 
         [Test]
@@ -85,7 +89,7 @@ namespace TextPaint.Tests
             var splitter = CreateSplitter("<p>aaa</p>   \r\n    <p>bbb</p>");
 
             // Act
-            var result = splitter.GetPage(_paint, maxWidth, 100).ToStringArray();
+            var result = splitter.GetPage(maxWidth, 100).ToStringArray();
 
             // Assert
             result.ShouldBe(new[]
@@ -103,7 +107,7 @@ namespace TextPaint.Tests
             var splitter = CreateSplitter("<p>aaa</p> <empty-line /> <p>bbb</p>");
 
             // Act
-            var result = splitter.GetPage(_paint, maxWidth, 100).ToStringArray();
+            var result = splitter.GetPage(maxWidth, 100).ToStringArray();
 
             // Assert
             result.ShouldBe(new[]
@@ -118,7 +122,9 @@ namespace TextPaint.Tests
         {
             var readingInfo = new ReadingInfo(0, 0);
             var book = Fb2Parser.Load($"<FictionBook><body>{text}</body></FictionBook>");
-            return new TextSplitter(book, readingInfo);
+            var splitter = new TextSplitter(book, readingInfo);
+            splitter.ChangeParameters(new TextParameters(_paint));
+            return splitter;
         }
     }
 

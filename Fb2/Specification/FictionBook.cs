@@ -29,7 +29,7 @@ namespace Fb2.Specification
         {
             var lines = new[]
             {
-                "Load time: " + LoadTime,
+                "Time: " + LoadTime,
                 "",
                 "Ignored tags:"
             }.Concat(IgnoredTags);
