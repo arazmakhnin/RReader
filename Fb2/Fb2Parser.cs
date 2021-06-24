@@ -19,8 +19,10 @@ namespace Fb2
 
             var ignoredTags = new List<string>();
             var w = Stopwatch.StartNew();
-            var bookElements = Parse(doc.Root.Nodes(), ignoredTags);
+            var bookElements = new List<BaseItem>();
+            Parse(doc.Root.Nodes(), bookElements, ignoredTags);
             w.Stop();
+
             return new FictionBook(bookElements, new LoadInfo(ignoredTags, w.Elapsed));
         }
 
@@ -30,11 +32,11 @@ namespace Fb2
             return Load(text);
         }
 
-        private static IReadOnlyCollection<BaseItem> Parse(
+        private static void Parse(
             IEnumerable<XNode> nodes,
+            ICollection<BaseItem> result,
             ICollection<string> ignoredTags)
         {
-            var result = new List<BaseItem>();
             foreach (var node in nodes)
             {
                 if (node is XText text)
@@ -47,7 +49,18 @@ namespace Fb2
                 {
                     if (ItemsMapper.Map.TryGetValue(element.Name.LocalName.ToLower(), out var create))
                     {
-                        result.Add(create(Parse(element.Nodes(), ignoredTags)));
+                        var openTag = create();
+                        openTag.TagType = element.IsEmpty ? TagType.SelfClose : TagType.Open;
+                        result.Add(openTag);
+
+                        if (openTag.TagType != TagType.SelfClose)
+                        {
+                            Parse(element.Nodes(), result, ignoredTags);
+
+                            var closeTag = create();
+                            closeTag.TagType = TagType.Close;
+                            result.Add(closeTag);
+                        }
                     }
                     else
                     {
@@ -58,8 +71,6 @@ namespace Fb2
                     }
                 }
             }
-
-            return result;
         }
     }
 }

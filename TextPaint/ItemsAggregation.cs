@@ -9,6 +9,7 @@ namespace TextPaint
         private readonly int _lookForLine;
         private readonly float _maxHeight;
         private readonly List<DrawingItem> _items;
+        private bool _lookingForStartLine;
 
         public IReadOnlyCollection<DrawingItem> Items => _items;
         public bool EndOfPage { get; private set; }
@@ -20,22 +21,25 @@ namespace TextPaint
             _lookForLine = lookForLine;
             _maxHeight = maxHeight;
             _items = new List<DrawingItem>();
+            _lookingForStartLine = true;
         }
 
-        public void Add(DrawingItem item)
+        public bool TryAdd(DrawingItem item)
         {
-            if (CurrentLineIndex >= _lookForLine)
+            var wasAdded = false;
+            if (!_lookingForStartLine || CurrentLineIndex >= _lookForLine)
             {
-                //if (item is DrawingText t && t.Text == "")
+                _lookingForStartLine = false;
 
                 if (TextHeight + item.GetHeight > _maxHeight)
                 {
                     EndOfPage = true;
-                    return;
+                    return false;
                 }
 
-                //Debug.WriteLine(item switch{ DrawingText t => t.Text, _ => "=="});
+                Debug.WriteLine(item switch{ DrawingText t => t.Text, _ => "=="});
                 _items.Add(item);
+                wasAdded = true;
                 if (item is LineBreak lineBreak)
                 {
                     TextHeight += lineBreak.Paint.TextSize;
@@ -51,6 +55,13 @@ namespace TextPaint
             {
                 CurrentLineIndex++;
             }
+
+            return wasAdded;
+        }
+
+        public void StartNewItem()
+        {
+            CurrentLineIndex = 0;
         }
     }
 }

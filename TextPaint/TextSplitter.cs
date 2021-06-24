@@ -30,8 +30,7 @@ namespace TextPaint
         {
             _currentPage = startFrom;
 
-            var body = book.Items.OfType<Body>().First();
-            _book = Flatten(body).ToArray();
+            _book = book.Items.SkipWhile(i => i is not Body).ToArray();
         }
 
         public void ChangeParameters(TextParameters textParameters)
@@ -50,16 +49,16 @@ namespace TextPaint
             var isEmphasis = false;
 
             var currentItemIndex = _currentPage.ItemIndex;
-            while (currentItemIndex < _book.Length)
+            for (var i = currentItemIndex; i < _book.Length; i++)
             {
-                var item = _book[currentItemIndex];
+                var item = _book[i];
 
                 switch (item)
                 {
                     case Text text:
                         foreach (var textPart in ProcessText(text, isStrong, isEmphasis, maxWidth))
                         {
-                            result.Add(textPart);
+                            result.TryAdd(textPart);
                             if (result.EndOfPage)
                             {
                                 break;
@@ -68,21 +67,31 @@ namespace TextPaint
 
                         break;
 
-                    case Paragraph _:
-                        result.Add(new LineBreak(_regularTextPaint));
+                    case Body { TagType: TagType.Close }:
+                        currentItemIndex = i + 1; // On the end of the book
+                        result.StartNewItem();
+                        break;
+
+                    case Paragraph { TagType: TagType.Open }:
+                        currentItemIndex = i;
+                        result.StartNewItem();
+                        break;
+
+                    case Paragraph { TagType: TagType.Close }:
+                        result.TryAdd(new LineBreak(_regularTextPaint));
                         _width = 0;
                         break;
 
-                    case Strong _:
+                    case Strong:
                         isStrong = !isStrong;
                         break;
 
-                    case Emphasis _:
+                    case Emphasis:
                         isEmphasis = !isEmphasis;
                         break;
 
-                    case Fb2.Specification.EmptyLine _:
-                        result.Add(new EmptyLine(EmptyLineSize));
+                    case Fb2.Specification.EmptyLine:
+                        result.TryAdd(new EmptyLine(EmptyLineSize));
                         _width = 0;
                         break;
 
@@ -98,8 +107,6 @@ namespace TextPaint
                 {
                     break;
                 }
-
-                currentItemIndex++;
             }
 
             _nextPage = new ReadingInfo(currentItemIndex, result.CurrentLineIndex);
@@ -121,23 +128,6 @@ namespace TextPaint
             _currentPage = _nextPage;
             return true;
         }
-
-        private static IEnumerable<BaseItem> Flatten(BaseItem item)
-        {
-            IEnumerable<BaseItem> result = new BaseItem[0];
-            if (item is not Paragraph)
-            {
-                result = result.Concat(new[] { item });
-            }
-
-            result = result.Concat(item.Items.SelectMany(Flatten));
-            if (item is Strong or Emphasis or Paragraph)
-            {
-                result = result.Concat(new[] { item });
-            }
-
-            return result;
-        }
         
         private IEnumerable<DrawingItem> ProcessText(Text text, bool isStrong, bool isEmphasis, float maxWidth)
         {
@@ -154,10 +144,17 @@ namespace TextPaint
                 paint = new SKPaint(new SKFont(typeface, _regularTextPaint.TextSize));
             }
 
-            while (true)
+            while (start < text.Value.Length)
             {
+                var isFirstItemInLine = _width == 0;
+                if (isFirstItemInLine && text.Value[start] == ' ')
+                {
+                    start++;
+                    continue;
+                }
+
                 var span = text.Value.AsSpan(start);
-                var charCount = (int)_regularTextPaint.BreakText(span, maxWidth - _width);
+                var charCount = (int)paint.BreakText(span, maxWidth - _width);
                 if (span.Length == charCount)
                 {
                     var str = span.ToString();
@@ -167,7 +164,7 @@ namespace TextPaint
                 }
 
                 var spaceIndex = FindSpace(span, charCount);
-                if (spaceIndex == -1)
+                if (spaceIndex is -1 or 0)
                 {
                     yield return new LineBreak(paint);
                     _width = 0;

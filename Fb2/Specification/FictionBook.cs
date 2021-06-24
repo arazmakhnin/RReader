@@ -4,12 +4,14 @@ using System.Linq;
 
 namespace Fb2.Specification
 {
-    public class FictionBook : BaseItem
+    public class FictionBook
     {
+        public IReadOnlyCollection<BaseItem> Items { get; }
         public LoadInfo LoadInfo { get; }
 
-        public FictionBook(IReadOnlyCollection<BaseItem> items, LoadInfo loadInfo) : base(items)
+        public FictionBook(IReadOnlyCollection<BaseItem> items, LoadInfo loadInfo)
         {
+            Items = items;
             LoadInfo = loadInfo;
         }
     }

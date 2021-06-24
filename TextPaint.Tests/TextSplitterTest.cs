@@ -95,8 +95,38 @@ namespace TextPaint.Tests
         {
             // Arrange
             var maxWidth = _paint.MeasureText("aaa");
+            var maxHeight = _paint.TextSize;
+            var splitter = CreateSplitter("aaa bbb");
+
+            // Act
+            var result1 = splitter.GetPage(maxWidth, maxHeight).ToStringArray();
+            var canNextPage1 = splitter.NextPage();
+            var result2 = splitter.GetPage(maxWidth, maxHeight).ToStringArray();
+            var canNextPage2 = splitter.NextPage();
+
+            // Assert
+            result1.ShouldBe(new[]
+            {
+                "aaa",
+                SplitExtension.LineBreak
+            });
+
+            result2.ShouldBe(new[]
+            {
+                "bbb"
+            });
+
+            canNextPage1.ShouldBeTrue();
+            canNextPage2.ShouldBeFalse();
+        }
+
+        [Test]
+        public void Test3_6_ShouldGetNextPageForMultipleParagraphs()
+        {
+            // Arrange
+            var maxWidth = _paint.MeasureText("aaa");
             var maxHeight = _paint.TextSize * 2;
-            var splitter = CreateSplitter("aaa bbb ccc");
+            var splitter = CreateSplitter("<p>aaa</p><p>bbb</p><p>ccc</p>");
 
             // Act
             var result1 = splitter.GetPage(maxWidth, maxHeight).ToStringArray();
@@ -115,11 +145,117 @@ namespace TextPaint.Tests
 
             result2.ShouldBe(new[]
             {
-                "ccc"
+                "ccc",
+                SplitExtension.LineBreak
             });
 
             canNextPage1.ShouldBeTrue();
             canNextPage2.ShouldBeFalse();
+        }
+
+        [Test]
+        public void Test3_7_ShouldGetNextPageForMultipleTags()
+        {
+            // Arrange
+            var maxWidth = _paint.MeasureText("aaa");
+            var maxHeight = _paint.TextSize * 3;
+            var splitter = CreateSplitter("<p>aaa <emphasis>bbb</emphasis> ccc ddd eee</p>");
+
+            // Act
+            var result1 = splitter.GetPage(maxWidth, maxHeight).ToStringArray();
+            var canNextPage1 = splitter.NextPage();
+            var result2 = splitter.GetPage(maxWidth, maxHeight).ToStringArray();
+            var canNextPage2 = splitter.NextPage();
+
+            // Assert
+            result1.ShouldBe(new[]
+            {
+                "aaa",
+                SplitExtension.LineBreak,
+                "bbb-italic",
+                SplitExtension.LineBreak,
+                "ccc",
+                SplitExtension.LineBreak
+            });
+
+            result2.ShouldBe(new[]
+            {
+                "ddd",
+                SplitExtension.LineBreak,
+                "eee",
+                SplitExtension.LineBreak
+            });
+
+            canNextPage1.ShouldBeTrue();
+            canNextPage2.ShouldBeFalse();
+        }
+
+        [Test]
+        public void Test3_8_ShouldGetNextPageForMultipleTags()
+        {
+            // Arrange
+            var maxWidth = _paint.MeasureText("aaa bbb ccc");
+            var maxHeight = _paint.TextSize;
+            var splitter = CreateSplitter("<p>aaa <emphasis>bbb</emphasis> ccc ddd eee</p>");
+
+            // Act
+            var result1 = splitter.GetPage(maxWidth, maxHeight).ToStringArray();
+            var canNextPage1 = splitter.NextPage();
+            var result2 = splitter.GetPage(maxWidth, maxHeight).ToStringArray();
+            var canNextPage2 = splitter.NextPage();
+
+            // Assert
+            result1.ShouldBe(new[]
+            {
+                "aaa ",
+                "bbb-italic",
+                " ccc",
+                SplitExtension.LineBreak
+            });
+
+            result2.ShouldBe(new[]
+            {
+                "ddd eee",
+                SplitExtension.LineBreak
+            });
+
+            canNextPage1.ShouldBeTrue();
+            canNextPage2.ShouldBeFalse();
+        }
+
+        [Test]
+        public void Test3_9_ShouldGetNextPageForMultipleTags()
+        {
+            // Arrange
+            var maxWidth = _paint.MeasureText("aaa");
+            var maxHeight = _paint.TextSize * 2;
+            var splitter = CreateSplitter("<p>aaa bbb ccc</p><p>zzz xxx</p>");
+
+            // Act
+            var result1 = splitter.GetPage(maxWidth, maxHeight).ToStringArray();
+            var canNextPage1 = splitter.NextPage();
+            var result2 = splitter.GetPage(maxWidth, maxHeight).ToStringArray();
+            var canNextPage2 = splitter.NextPage();
+
+            // Assert
+            result1.ShouldBe(new[]
+            {
+                "aaa",
+                SplitExtension.LineBreak,
+                "bbb",
+                SplitExtension.LineBreak
+            });
+
+            result2.ShouldBe(new[]
+            {
+                "ccc",
+                SplitExtension.LineBreak,
+                "zzz",
+                SplitExtension.LineBreak
+            });
+
+            canNextPage1.ShouldBeTrue();
+            canNextPage2.ShouldBeTrue();
         }
 
         [Test]
@@ -224,7 +360,7 @@ namespace TextPaint.Tests
             var splitter = CreateSplitter("<p>asd <strong>aaa</strong> zxc</p>");
 
             // Act
-            var result = splitter.GetPage(100, 100).ToStringArray(true);
+            var result = splitter.GetPage(150, 100).ToStringArray(true);
 
             // Assert
             result.ShouldBe(new[]
@@ -232,6 +368,26 @@ namespace TextPaint.Tests
                 "asd ",
                 "aaa-bold",
                 " zxc"
+            });
+        }
+
+        [Test]
+        public void Test6_5_ShouldProcessMultipleTagsWithLineBreakOnSpace()
+        {
+            // Arrange
+            var splitter = CreateSplitter("<p>asd <strong>aaa</strong> zxc</p>");
+
+            // Act
+            var result = splitter.GetPage(100, 100).ToStringArray();
+
+            // Assert
+            result.ShouldBe(new[]
+            {
+                "asd ",
+                "aaa-bold",
+                SplitExtension.LineBreak,
+                "zxc",
+                SplitExtension.LineBreak
             });
         }
 
@@ -258,7 +414,7 @@ namespace TextPaint.Tests
             var splitter = CreateSplitter("<p>asd <emphasis>aaa</emphasis> zxc</p>");
 
             // Act
-            var result = splitter.GetPage(100, 100).ToStringArray(true);
+            var result = splitter.GetPage(150, 100).ToStringArray(true);
 
             // Assert
             result.ShouldBe(new[]
