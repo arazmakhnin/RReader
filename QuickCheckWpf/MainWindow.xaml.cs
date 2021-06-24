@@ -34,8 +34,8 @@ namespace QuickCheckWpf
         {
             using var bitmap = new SKBitmap();
             using var canvas = new SKCanvas(bitmap);
-
-            Painter.Paint(_splitter, canvas, new SKImageInfo(int.MaxValue, int.MaxValue), out var drawInfo);
+            var formCanvas = new FormCanvas(canvas);
+            Painter.Paint(_splitter, formCanvas, new SKImageInfo(int.MaxValue, int.MaxValue), out var drawInfo);
 
             var builder = new StringBuilder()
                 .AppendLine("== Parsing ==")
@@ -60,7 +60,7 @@ namespace QuickCheckWpf
 
         private void SKElement_OnPaintSurface(object? sender, SKPaintSurfaceEventArgs e)
         {
-            Painter.Paint(_splitter, e.Surface.Canvas, e.Info);
+            Painter.Paint(_splitter, new FormCanvas(e.Surface.Canvas), e.Info);
         }
 
         private void ButtonBase_OnClick(object sender, RoutedEventArgs e)
