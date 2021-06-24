@@ -20,6 +20,7 @@ namespace TextPaint
         private readonly BaseItem[] _book;
         private ReadingInfo _currentPage;
         private ReadingInfo _nextPage;
+        private float _width;
 
 #if DEBUG
         public LoadInfo LoadInfo { get; private set; }
@@ -69,6 +70,7 @@ namespace TextPaint
 
                     case Paragraph _:
                         result.Add(new LineBreak(_regularTextPaint));
+                        _width = 0;
                         break;
 
                     case Strong _:
@@ -81,6 +83,7 @@ namespace TextPaint
 
                     case Fb2.Specification.EmptyLine _:
                         result.Add(new EmptyLine(EmptyLineSize));
+                        _width = 0;
                         break;
 
                     default:
@@ -128,7 +131,7 @@ namespace TextPaint
             }
 
             result = result.Concat(item.Items.SelectMany(Flatten));
-            if (item is Strong || item is Emphasis || item is Paragraph)
+            if (item is Strong or Emphasis or Paragraph)
             {
                 result = result.Concat(new[] { item });
             }
@@ -151,15 +154,15 @@ namespace TextPaint
                 paint = new SKPaint(new SKFont(typeface, _regularTextPaint.TextSize));
             }
 
-            var width = 0f;
-
             while (true)
             {
                 var span = text.Value.AsSpan(start);
-                var charCount = (int)_regularTextPaint.BreakText(span, maxWidth - width);
+                var charCount = (int)_regularTextPaint.BreakText(span, maxWidth - _width);
                 if (span.Length == charCount)
                 {
-                    yield return new DrawingText(span.ToString(), paint);
+                    var str = span.ToString();
+                    yield return new DrawingText(str, paint);
+                    _width += paint.MeasureText(str);
                     break;
                 }
 
@@ -167,13 +170,13 @@ namespace TextPaint
                 if (spaceIndex == -1)
                 {
                     yield return new LineBreak(paint);
-                    width = 0;
+                    _width = 0;
                     continue;
                 }
 
                 var part = text.Value.Substring(start, spaceIndex);
                 yield return new DrawingText(part, paint);
-                width += paint.MeasureText(part);
+                _width += paint.MeasureText(part);
 
                 start += spaceIndex + 1;
             }

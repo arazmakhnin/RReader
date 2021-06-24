@@ -290,6 +290,45 @@ namespace TextPaint.Tests
             });
         }
 
+        [Test]
+        public void Test10_ShouldCountWidthForDifferentTags()
+        {
+            // Arrange
+            var maxWidth = _paint.MeasureText("aaa");
+            var splitter = CreateSplitter("<strong>aaa</strong><emphasis>bbb</emphasis>");
+
+            // Act
+            var result = splitter.GetPage(maxWidth, 100).ToStringArray();
+
+            // Assert
+            result.ShouldBe(new[]
+            {
+                "aaa-bold",
+                SplitExtension.LineBreak,
+                "bbb-italic"
+            });
+        }
+
+        [Test]
+        public void Test11_ShouldBreakLineInsideTags()
+        {
+            // Arrange
+            var maxWidth = _paint.MeasureText("aaa bbb ccc");
+            var splitter = CreateSplitter("<strong>aaa bbb</strong><emphasis> ccc ddd</emphasis>");
+
+            // Act
+            var result = splitter.GetPage(maxWidth, 100).ToStringArray();
+
+            // Assert
+            result.ShouldBe(new[]
+            {
+                "aaa bbb-bold",
+                " ccc-italic",
+                SplitExtension.LineBreak,
+                "ddd-italic"
+            });
+        }
+
         private TextSplitter CreateSplitter(string text)
         {
             var readingInfo = new ReadingInfo(0, 0);
