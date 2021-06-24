@@ -32,12 +32,17 @@ namespace TextPaint
                 {
                     case DrawingText text:
                         text.Paint.Color = SKColors.White;
-                        point.Y += text.Paint.TextSize;
                         canvas.DrawText(text.Text, point, text.Paint);
+                        point.X += text.Paint.MeasureText(text.Text);
                         break;
 
                     case EmptyLine emptyLine:
                         point.Y += emptyLine.Size;
+                        break;
+
+                    case LineBreak lineBreak:
+                        point.X = 0;
+                        point.Y += lineBreak.Paint.TextSize;
                         break;
 
                     default:

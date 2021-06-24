@@ -20,6 +20,19 @@ namespace TextPaint.Tests
         }
 
         [Test]
+        public void Test0_WithEmptyText()
+        {
+            // Arrange
+            var splitter = CreateSplitter(string.Empty);
+
+            // Act
+            var result = splitter.GetPage(100, 100).ToStringArray();
+
+            // Assert
+            result.ShouldBeEmpty();
+        }
+
+        [Test]
         public void Test1_SimpleWithOneLine()
         {
             // Arrange
@@ -31,8 +44,7 @@ namespace TextPaint.Tests
             // Assert
             result.ShouldBe(new[]
             {
-                "a",
-                SplitExtension.LineBreak
+                "a"
             });
         }
 
@@ -53,13 +65,33 @@ namespace TextPaint.Tests
                 SplitExtension.LineBreak,
                 "aaa",
                 SplitExtension.LineBreak,
+                "aaa"
+            });
+        }
+
+        [Test]
+        public void Test3_ShouldBreakPage()
+        {
+            // Arrange
+            var maxWidth = _paint.MeasureText("aaa");
+            var maxHeight = _paint.TextSize * 2;
+            var splitter = CreateSplitter("aaa bbb ccc");
+
+            // Act
+            var result = splitter.GetPage(maxWidth, maxHeight).ToStringArray();
+
+            // Assert
+            result.ShouldBe(new[]
+            {
                 "aaa",
+                SplitExtension.LineBreak,
+                "bbb",
                 SplitExtension.LineBreak
             });
         }
 
         [Test]
-        public void Test3_BreakingSeveralPages()
+        public void Test3_5_ShouldGetNextPageAfterBreak()
         {
             // Arrange
             var maxWidth = _paint.MeasureText("aaa");
@@ -83,8 +115,7 @@ namespace TextPaint.Tests
 
             result2.ShouldBe(new[]
             {
-                "ccc",
-                SplitExtension.LineBreak
+                "ccc"
             });
 
             canNextPage1.ShouldBeTrue();
@@ -115,11 +146,10 @@ namespace TextPaint.Tests
         public void Test5_ShouldProcessEmptyLineTag()
         {
             // Arrange
-            var maxWidth = _paint.MeasureText("aaa");
             var splitter = CreateSplitter("<p>aaa</p> <empty-line /> <p>bbb</p>");
 
             // Act
-            var result = splitter.GetPage(maxWidth, 100).ToStringArray();
+            var result = splitter.GetPage(100, 100).ToStringArray();
 
             // Assert
             result.ShouldBe(new[]
@@ -129,6 +159,45 @@ namespace TextPaint.Tests
                 SplitExtension.EmptyLine,
                 "bbb",
                 SplitExtension.LineBreak
+            });
+        }
+
+        [Test]
+        public void Test5_4_ShouldProcessParagraphTag()
+        {
+            // Arrange
+            var maxHeight = _paint.TextSize * 2;
+            var splitter = CreateSplitter("<p>aaa</p><p>bbb</p>");
+
+            // Act
+            var result = splitter.GetPage(100, maxHeight).ToStringArray();
+
+            // Assert
+            result.ShouldBe(new[]
+            {
+                "aaa",
+                SplitExtension.LineBreak,
+                "bbb",
+                SplitExtension.LineBreak
+            });
+        }
+
+        [Test]
+        public void Test5_5_ShouldCountEmptyLineWhenCalculatingPageHeight()
+        {
+            // Arrange
+            var maxHeight = _paint.TextSize * 2;
+            var splitter = CreateSplitter("<p>aaa</p> <empty-line /> <p>bbb</p>");
+
+            // Act
+            var result = splitter.GetPage(100, maxHeight).ToStringArray();
+
+            // Assert
+            result.ShouldBe(new[]
+            {
+                "aaa",
+                SplitExtension.LineBreak,
+                SplitExtension.EmptyLine
             });
         }
 
@@ -163,6 +232,61 @@ namespace TextPaint.Tests
                 "asd ",
                 "aaa-bold",
                 " zxc"
+            });
+        }
+
+        [Test]
+        public void Test7_ShouldProcessEmphasisTag()
+        {
+            // Arrange
+            var splitter = CreateSplitter("<emphasis>aaa</emphasis>");
+
+            // Act
+            var result = splitter.GetPage(100, 100).ToStringArray(true);
+
+            // Assert
+            result.ShouldBe(new[]
+            {
+                "aaa-italic"
+            });
+        }
+
+        [Test]
+        public void Test8_ShouldProcessEmphasisTagExtended()
+        {
+            // Arrange
+            var splitter = CreateSplitter("<p>asd <emphasis>aaa</emphasis> zxc</p>");
+
+            // Act
+            var result = splitter.GetPage(100, 100).ToStringArray(true);
+
+            // Assert
+            result.ShouldBe(new[]
+            {
+                "asd ",
+                "aaa-italic",
+                " zxc"
+            });
+        }
+
+        [Test]
+        public void Test9_ShouldProcessBothStrongAndEmphasisTags()
+        {
+            // Arrange
+            var splitter = CreateSplitter("<p>1 <strong>2 <emphasis>3</emphasis> 4</strong> 5</p>");
+
+            // Act
+            var result = splitter.GetPage(100, 100).ToStringArray();
+
+            // Assert
+            result.ShouldBe(new[]
+            {
+                "1 ",
+                "2 -bold",
+                "3-bold-italic",
+                " 4-bold",
+                " 5",
+                SplitExtension.LineBreak
             });
         }
 
@@ -209,6 +333,11 @@ namespace TextPaint.Tests
             if (text.Paint.Typeface.IsBold)
             {
                 builder.Append("-bold");
+            }
+
+            if (text.Paint.Typeface.IsItalic)
+            {
+                builder.Append("-italic");
             }
 
             return builder.ToString();

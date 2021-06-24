@@ -34,6 +34,11 @@ namespace Fb2.Specification
         public Strong(IReadOnlyCollection<BaseItem> items) : base(items) { }
     }
 
+    public class Emphasis : BaseItem
+    {
+        public Emphasis(IReadOnlyCollection<BaseItem> items) : base(items) { }
+    }
+
     public class EmptyLine : BaseItem
     {
         public EmptyLine() : base(Array.Empty<BaseItem>()) { }
@@ -58,6 +63,7 @@ namespace Fb2.Specification
             ["title"] = e => new Title(e),
             ["p"] = e => new Paragraph(e),
             ["strong"] = e => new Strong(e),
+            ["emphasis"] = e => new Emphasis(e),
             ["empty-line"] = e => new EmptyLine()
         };
     }

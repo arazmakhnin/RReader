@@ -43,16 +43,12 @@ namespace TextPaint
             var w = Stopwatch.StartNew();
             var ignoredTags = new List<string>();
 
-            var height = 0f;
-
-            var result = new List<DrawingItem>();
+            var result = new ItemsAggregation(_currentPage.LineIndex, maxHeight);
 
             var isStrong = false;
+            var isEmphasis = false;
 
             var currentItemIndex = _currentPage.ItemIndex;
-            var currentLineIndex = 0;
-            var lookingForStart = true;
-            var stopProcessing = false;
             while (currentItemIndex < _book.Length)
             {
                 var item = _book[currentItemIndex];
@@ -60,39 +56,27 @@ namespace TextPaint
                 switch (item)
                 {
                     case Text text:
-                    {
-                        currentLineIndex = 0;
-                        foreach (var line in ProcessText(text, isStrong, maxWidth))
+                        foreach (var textPart in ProcessText(text, isStrong, isEmphasis, maxWidth))
                         {
-                            if (height + line.Paint.TextSize > maxHeight)
+                            result.Add(textPart);
+                            if (result.EndOfPage)
                             {
-                                stopProcessing = true;
                                 break;
                             }
-
-                            if (lookingForStart)
-                            {
-                                if (currentLineIndex == _currentPage.LineIndex)
-                                {
-                                    lookingForStart = false;
-                                }
-                            }
-
-                            if (!lookingForStart)
-                            {
-                                height += line.Paint.TextSize;
-                                result.Add(line);
-                                result.Add(new LineBreak());
-                            }
-
-                            currentLineIndex++;
                         }
 
                         break;
-                    }
+
+                    case Paragraph _:
+                        result.Add(new LineBreak(_regularTextPaint));
+                        break;
 
                     case Strong _:
                         isStrong = !isStrong;
+                        break;
+
+                    case Emphasis _:
+                        isEmphasis = !isEmphasis;
                         break;
 
                     case Fb2.Specification.EmptyLine _:
@@ -107,7 +91,7 @@ namespace TextPaint
                         break;
                 }
 
-                if (stopProcessing)
+                if (result.EndOfPage)
                 {
                     break;
                 }
@@ -115,13 +99,13 @@ namespace TextPaint
                 currentItemIndex++;
             }
 
-            _nextPage = new ReadingInfo(currentItemIndex, currentLineIndex);
+            _nextPage = new ReadingInfo(currentItemIndex, result.CurrentLineIndex);
 
             w.Stop();
 
             LoadInfo = new LoadInfo(ignoredTags, w.Elapsed);
 
-            return result;
+            return result.Items;
         }
 
         public bool NextPage()
@@ -137,8 +121,14 @@ namespace TextPaint
 
         private static IEnumerable<BaseItem> Flatten(BaseItem item)
         {
-            var result = new[] { item }.Concat(item.Items.SelectMany(Flatten));
-            if (item is Strong)
+            IEnumerable<BaseItem> result = new BaseItem[0];
+            if (item is not Paragraph)
+            {
+                result = result.Concat(new[] { item });
+            }
+
+            result = result.Concat(item.Items.SelectMany(Flatten));
+            if (item is Strong || item is Emphasis || item is Paragraph)
             {
                 result = result.Concat(new[] { item });
             }
@@ -146,20 +136,27 @@ namespace TextPaint
             return result;
         }
         
-        private IEnumerable<DrawingText> ProcessText(Text text, bool isStrong, float maxWidth)
+        private IEnumerable<DrawingItem> ProcessText(Text text, bool isStrong, bool isEmphasis, float maxWidth)
         {
             var start = 0;
 
             var paint = _regularTextPaint;
-            if (isStrong)
+            if (isStrong || isEmphasis)
             {
-                paint = new SKPaint(new SKFont(SKTypeface.FromFamilyName(_regularTextPaint.Typeface.FamilyName, SKFontStyleWeight.Bold, SKFontStyleWidth.Normal, SKFontStyleSlant.Upright), _regularTextPaint.TextSize));
+                var typeface = SKTypeface.FromFamilyName(
+                    _regularTextPaint.Typeface.FamilyName, 
+                    isStrong ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal, 
+                    SKFontStyleWidth.Normal, 
+                    isEmphasis ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright);
+                paint = new SKPaint(new SKFont(typeface, _regularTextPaint.TextSize));
             }
+
+            var width = 0f;
 
             while (true)
             {
                 var span = text.Value.AsSpan(start);
-                var charCount = (int)_regularTextPaint.BreakText(span, maxWidth);
+                var charCount = (int)_regularTextPaint.BreakText(span, maxWidth - width);
                 if (span.Length == charCount)
                 {
                     yield return new DrawingText(span.ToString(), paint);
@@ -169,11 +166,14 @@ namespace TextPaint
                 var spaceIndex = FindSpace(span, charCount);
                 if (spaceIndex == -1)
                 {
-                    yield return new DrawingText(span.ToString(), paint);
-                    break;
+                    yield return new LineBreak(paint);
+                    width = 0;
+                    continue;
                 }
 
-                yield return new DrawingText(text.Value.Substring(start, spaceIndex), paint);
+                var part = text.Value.Substring(start, spaceIndex);
+                yield return new DrawingText(part, paint);
+                width += paint.MeasureText(part);
 
                 start += spaceIndex + 1;
             }
@@ -206,35 +206,5 @@ namespace TextPaint
     public interface ICurrentPage
     {
         IReadOnlyCollection<DrawingItem> GetPage(float maxWidth, float maxHeight);
-    }
-
-    public class DrawingItem
-    {
-    }
-
-    public class DrawingText : DrawingItem
-    {
-        public string Text { get; }
-        public SKPaint Paint { get; }
-
-        public DrawingText(string text, SKPaint paint)
-        {
-            Text = text;
-            Paint = paint;
-        }
-    }
-
-    public class LineBreak : DrawingItem
-    {
-    }
-
-    public class EmptyLine : DrawingItem
-    {
-        public int Size { get; }
-
-        public EmptyLine(int size)
-        {
-            Size = size;
-        }
     }
 }
