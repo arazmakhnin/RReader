@@ -51,11 +51,14 @@ namespace TextPaint.Tests
         }
 
         [Test]
-        public void WithOnlyOneWord_ShouldDrawItInTheTopLeftCorner()
+        [TestCase(0)]
+        [TestCase(20)]
+        public void WithOnlyOneWord_ShouldDrawItInTheTopLeftCorner(int indent)
         {
             // Arrange
             _pageContent = new List<DrawingItem>
             {
+                new EmptySpace(indent),
                 new DrawingText("aaa", _paint)
             };
             var info = new SKImageInfo(100, 100);
@@ -65,9 +68,9 @@ namespace TextPaint.Tests
 
             // Assert
             _paintInfo.Count.ShouldBe(1);
-            Check(_paintInfo[0], "aaa", new SKPoint(0, _paint.TextSize), _paint);
+            Check(_paintInfo[0], "aaa", new SKPoint(indent, _paint.TextSize), _paint);
         }
-
+        
         [Test]
         public void WithTwoItemsInOneLine_ShouldDrawOneLine()
         {

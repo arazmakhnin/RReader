@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Fb2.Specification;
@@ -9,18 +8,10 @@ namespace TextPaint
 {
     public class TextSplitter : ICurrentPage
     {
-        private const int EmptyLineSize = 10;
-
-        private SKPaint _regularTextPaint = new SKPaint(new SKFont
-        {
-            Typeface = SKTypeface.Default,
-            Size = 20
-        });
-
         private readonly BaseItem[] _book;
         private ReadingInfo _currentPage;
         private ReadingInfo _nextPage;
-        private float _width;
+        private readonly TextParameters _textParameters = new();
 
 #if DEBUG
         public LoadInfo LoadInfo { get; private set; }
@@ -33,9 +24,9 @@ namespace TextPaint
             _book = book.Items.SkipWhile(i => i is not Body).ToArray();
         }
 
-        public void ChangeParameters(TextParameters textParameters)
+        public void ChangeParameters(TextParameters newParameters)
         {
-            _regularTextPaint = textParameters.RegularTextPaint ?? _regularTextPaint;
+            _textParameters.Apply(newParameters);
         }
 
         public IReadOnlyCollection<DrawingItem> GetPage(float maxWidth, float maxHeight)
@@ -44,6 +35,7 @@ namespace TextPaint
             var ignoredTags = new List<string>();
 
             var result = new ItemsAggregation(_currentPage.LineIndex, maxHeight);
+            var lineProcessor = new TextLineProcessor(_textParameters);
 
             var isStrong = false;
             var isEmphasis = false;
@@ -56,7 +48,7 @@ namespace TextPaint
                 switch (item)
                 {
                     case Text text:
-                        foreach (var textPart in ProcessText(text, isStrong, isEmphasis, maxWidth))
+                        foreach (var textPart in lineProcessor.ProcessText(text, isStrong, isEmphasis, maxWidth))
                         {
                             result.TryAdd(textPart);
                             if (result.EndOfPage)
@@ -75,11 +67,11 @@ namespace TextPaint
                     case Paragraph { TagType: TagType.Open }:
                         currentItemIndex = i;
                         result.StartNewItem();
+                        lineProcessor.StartNewLine(true);
                         break;
 
                     case Paragraph { TagType: TagType.Close }:
-                        result.TryAdd(new LineBreak(_regularTextPaint));
-                        _width = 0;
+                        result.TryAdd(new LineBreak(_textParameters.RegularTextPaint));
                         break;
 
                     case Strong:
@@ -91,8 +83,7 @@ namespace TextPaint
                         break;
 
                     case Fb2.Specification.EmptyLine:
-                        result.TryAdd(new EmptyLine(EmptyLineSize));
-                        _width = 0;
+                        result.TryAdd(new EmptyLine(_textParameters.EmptyLineSize));
                         break;
 
                     default:
@@ -128,78 +119,24 @@ namespace TextPaint
             _currentPage = _nextPage;
             return true;
         }
-        
-        private IEnumerable<DrawingItem> ProcessText(Text text, bool isStrong, bool isEmphasis, float maxWidth)
-        {
-            var start = 0;
-
-            var paint = _regularTextPaint;
-            if (isStrong || isEmphasis)
-            {
-                var typeface = SKTypeface.FromFamilyName(
-                    _regularTextPaint.Typeface.FamilyName, 
-                    isStrong ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal, 
-                    SKFontStyleWidth.Normal, 
-                    isEmphasis ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright);
-                paint = new SKPaint(new SKFont(typeface, _regularTextPaint.TextSize));
-            }
-
-            while (start < text.Value.Length)
-            {
-                var isFirstItemInLine = _width == 0;
-                if (isFirstItemInLine && text.Value[start] == ' ')
-                {
-                    start++;
-                    continue;
-                }
-
-                var span = text.Value.AsSpan(start);
-                var charCount = (int)paint.BreakText(span, maxWidth - _width);
-                if (span.Length == charCount)
-                {
-                    var str = span.ToString();
-                    yield return new DrawingText(str, paint);
-                    _width += paint.MeasureText(str);
-                    break;
-                }
-
-                var spaceIndex = FindSpace(span, charCount);
-                if (spaceIndex is -1 or 0)
-                {
-                    yield return new LineBreak(paint);
-                    _width = 0;
-                    continue;
-                }
-
-                var part = text.Value.Substring(start, spaceIndex);
-                yield return new DrawingText(part, paint);
-                _width += paint.MeasureText(part);
-
-                start += spaceIndex + 1;
-            }
-        }
-
-        private static int FindSpace(ReadOnlySpan<char> span, int from)
-        {
-            for (var i = from; i >= 0; i--)
-            {
-                if (span[i] == ' ')
-                {
-                    return i;
-                }
-            }
-
-            return -1;
-        }
     }
 
     public class TextParameters
     {
-        public SKPaint RegularTextPaint { get; }
-
-        public TextParameters(SKPaint regularTextPaint)
+        public SKPaint RegularTextPaint { get; set; } = new SKPaint(new SKFont
         {
-            RegularTextPaint = regularTextPaint;
+            Typeface = SKTypeface.Default,
+            Size = 20
+        });
+
+        public int ParagraphFirstLineIndent { get; set; } = 20;
+        public int EmptyLineSize { get; set; } = 10;
+
+        public void Apply(TextParameters newParameters)
+        {
+            RegularTextPaint = newParameters.RegularTextPaint;
+            ParagraphFirstLineIndent = newParameters.ParagraphFirstLineIndent;
+            EmptyLineSize = newParameters.EmptyLineSize;
         }
     }
 

@@ -49,6 +49,10 @@ namespace TextPaint
                         isFirstInLine = true;
                         break;
 
+                    case EmptySpace emptySpace:
+                        point.X += emptySpace.Size;
+                        break;
+
                     default:
                         if (!ignoredTags.Contains(drawingItem.GetType().Name))
                         {

@@ -44,4 +44,16 @@ namespace TextPaint
             Size = size;
         }
     }
+
+    public class EmptySpace : DrawingItem
+    {
+        public int Size { get; }
+
+        public override float GetHeight => 0;
+
+        public EmptySpace(int size)
+        {
+            Size = size;
+        }
+    }
 }

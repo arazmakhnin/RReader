@@ -19,6 +19,12 @@ namespace TextPaint.Tests
             _paint = new SKPaint(new SKFont(SKTypeface.FromFamilyName("Consolas"))) { TextSize = 20 };
         }
 
+        [TearDown]
+        public void TearDown()
+        {
+            _paint?.Dispose();
+        }
+
         [Test]
         public void Test0_WithEmptyText()
         {
@@ -53,7 +59,7 @@ namespace TextPaint.Tests
         {
             // Arrange
             var maxWidth = _paint.MeasureText("aaa");
-            var splitter = CreateSplitter("aaa aaa aaa");
+            var splitter = CreateSplitter("aaa bbb ccc");
 
             // Act
             var result = splitter.GetPage(maxWidth, 100).ToStringArray();
@@ -63,9 +69,9 @@ namespace TextPaint.Tests
             {
                 "aaa",
                 SplitExtension.LineBreak,
-                "aaa",
+                "bbb",
                 SplitExtension.LineBreak,
-                "aaa"
+                "ccc"
             });
         }
 
@@ -485,12 +491,42 @@ namespace TextPaint.Tests
             });
         }
 
+        [Test]
+        public void Test12_FirstLineOfParagraphShouldBeIndented()
+        {
+            // Arrange
+            var maxWidth = _paint.MeasureText("aaa bbb");
+            var splitter = CreateSplitter("<p>aaa bbb ccc</p>");
+            var textParameters = new TextParameters
+            {
+                RegularTextPaint = _paint
+            };
+            splitter.ChangeParameters(textParameters);
+
+            // Act
+            var result = splitter.GetPage(maxWidth, 100).ToStringArray();
+
+            // Assert
+            result.ShouldBe(new[]
+            {
+                SplitExtension.EmptySpace + textParameters.ParagraphFirstLineIndent,
+                "aaa ",
+                SplitExtension.LineBreak,
+                "bbb ccc",
+                SplitExtension.LineBreak
+            });
+        }
+
         private TextSplitter CreateSplitter(string text)
         {
             var readingInfo = new ReadingInfo(0, 0);
             var book = Fb2Parser.Load($"<FictionBook><body>{text}</body></FictionBook>");
             var splitter = new TextSplitter(book, readingInfo);
-            splitter.ChangeParameters(new TextParameters(_paint));
+            splitter.ChangeParameters(new TextParameters
+            {
+                RegularTextPaint = _paint,
+                ParagraphFirstLineIndent = 0
+            });
             return splitter;
         }
     }
@@ -499,6 +535,7 @@ namespace TextPaint.Tests
     {
         internal const string LineBreak = "line-break";
         internal const string EmptyLine = "empty-line";
+        internal const string EmptySpace= "empty-space:";
 
         public static string[] ToStringArray(this IEnumerable<DrawingItem> items, bool ignoreLineBreaks = false)
         {
@@ -509,6 +546,7 @@ namespace TextPaint.Tests
                 DrawingText text => Stringify(text),
                 LineBreak _ => LineBreak,
                 EmptyLine _ => EmptyLine,
+                EmptySpace emptySpace => EmptySpace + emptySpace.Size,
                 _ => throw new ArgumentOutOfRangeException(nameof(i), i, null)
             });
 
