@@ -86,29 +86,26 @@ namespace TextPaint
 
         private SKPaint GetPaint(TextStyle style)
         {
-            var paint = _textParameters.RegularTextPaint;
-            if (style.Any())
+            if (!style.Any())
             {
-                var fontStyleWeight = style.IsStrong ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal;
-                var fontStyleSlant = style.IsEmphasis ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright;
-                var textSize = _textParameters.RegularTextPaint.TextSize;
-                var textAlign = SKTextAlign.Left;
-                if (style.IsTitle)
-                {
-                    textSize += 4;
-                    textAlign = SKTextAlign.Center;
-                }
-
-                var typeface = SKTypeface.FromFamilyName(
-                    _textParameters.RegularTextPaint.Typeface.FamilyName,
-                    fontStyleWeight,
-                    SKFontStyleWidth.Normal,
-                    fontStyleSlant);
-
-                paint = new SKPaint(new SKFont(typeface, textSize)) { TextAlign = textAlign };
+                return _textParameters.RegularTextPaint;
             }
 
-            return paint;
+            if (style.IsTitle)
+            {
+                return _textParameters.TitlePaint;
+            }
+
+            var fontStyleWeight = style.IsStrong ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal;
+            var fontStyleSlant = style.IsEmphasis ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright;
+
+            var typeface = SKTypeface.FromFamilyName(
+                _textParameters.RegularTextPaint.Typeface.FamilyName,
+                fontStyleWeight,
+                SKFontStyleWidth.Normal,
+                fontStyleSlant);
+
+            return new SKPaint(new SKFont(typeface, _textParameters.RegularTextPaint.TextSize));
         }
 
         private static int FindSpace(ReadOnlySpan<char> span, int from)

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Fb2.Specification;
@@ -126,22 +127,48 @@ namespace TextPaint
         }
     }
 
-    public class TextParameters
+    public class TextParameters : IDisposable
     {
-        public SKPaint RegularTextPaint { get; set; } = new SKPaint(new SKFont
-        {
-            Typeface = SKTypeface.Default,
-            Size = 20
-        });
+        public SKPaint RegularTextPaint { get; set; }
+        public SKPaint TitlePaint { get; set; }
 
         public int ParagraphFirstLineIndent { get; set; } = 20;
         public int EmptyLineSize { get; set; } = 10;
 
+        public TextParameters() : this(SKTypeface.Default)
+        {
+        }
+
+        public TextParameters(string fontFamilyName) : this(SKTypeface.FromFamilyName(fontFamilyName))
+        {
+        }
+
+        private TextParameters(SKTypeface typeface)
+        {
+            RegularTextPaint = new SKPaint(new SKFont
+            {
+                Typeface = typeface,
+                Size = 20
+            });
+
+            TitlePaint = new SKPaint(new SKFont(typeface, RegularTextPaint.TextSize + 4))
+            {
+                TextAlign = SKTextAlign.Center
+            };
+        }
+
         public void Apply(TextParameters newParameters)
         {
             RegularTextPaint = newParameters.RegularTextPaint;
+            TitlePaint = newParameters.TitlePaint;
             ParagraphFirstLineIndent = newParameters.ParagraphFirstLineIndent;
             EmptyLineSize = newParameters.EmptyLineSize;
+        }
+
+        public void Dispose()
+        {
+            RegularTextPaint?.Dispose();
+            TitlePaint?.Dispose();
         }
     }
 

@@ -30,12 +30,14 @@ namespace TextPaint.Tests
             _canvas.Setup(m => m.DrawText(It.IsAny<string>(), It.IsAny<SKPoint>(), It.IsAny<SKPaint>()))
                 .Callback<string, SKPoint, SKPaint>((text, point, paint) => _paintInfo.Add(new PaintInfo(text, point, paint)));
 
-            _paint = new SKPaint(new SKFont(SKTypeface.FromFamilyName("Consolas"))) { TextSize = 20 };
+            _textParameters = new TextParameters("Consolas");
+            _paint = _textParameters.RegularTextPaint;
         }
 
         [TearDown]
         public void TearDown()
         {
+            _textParameters?.Dispose();
             _paint?.Dispose();
         }
 
@@ -140,7 +142,29 @@ namespace TextPaint.Tests
 
             // Assert
             _paintInfo.Count.ShouldBe(1);
-            Check(0, "aaa", new SKPoint(info.Width / 2, _paint.TextSize + 4), p => p.TextSize.ShouldBe(_paint.TextSize + 4));
+            Check(0, "aaa", new SKPoint(info.Width / 2f, _textParameters.TitlePaint.TextSize), _textParameters.TitlePaint);
+        }
+
+        [Test]
+        public void WithLongTitleTag_ShouldBreakIt()
+        {
+            // Arrange
+            var maxWidth = _textParameters.TitlePaint.MeasureText("aaa");
+            var splitter = CreateSplitter("<title><p>aaa bbb</p></title>");
+            var info = new SKImageInfo((int)(maxWidth + 1), 100);
+
+            // Act
+            Painter.Paint(splitter, _canvas.Object, info);
+
+            // Assert
+            _paintInfo.Count.ShouldBe(2);
+            Check(0, "aaa", new SKPoint(info.Width / 2f, _textParameters.TitlePaint.TextSize), _textParameters.TitlePaint);
+            Check(1, "bbb", new SKPoint(info.Width / 2f, _textParameters.TitlePaint.TextSize * 2), _textParameters.TitlePaint);
+        }
+
+        private float Measure(int index)
+        {
+            return _paintInfo[index].Paint.MeasureText(_paintInfo[0].Text);
         }
 
         private void Check(int index, string text, SKPoint point, SKPaint paint)
@@ -161,10 +185,6 @@ namespace TextPaint.Tests
             var readingInfo = new ReadingInfo(0, 0);
             var book = Fb2Parser.Load($"<FictionBook><body>{text}</body></FictionBook>");
             var splitter = new TextSplitter(book, readingInfo);
-            _textParameters = new TextParameters
-            {
-                RegularTextPaint = _paint
-            };
             splitter.ChangeParameters(_textParameters);
             return splitter;
         }

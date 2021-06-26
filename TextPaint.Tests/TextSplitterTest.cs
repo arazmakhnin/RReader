@@ -17,12 +17,18 @@ namespace TextPaint.Tests
         [SetUp]
         public void Setup()
         {
-            _paint = new SKPaint(new SKFont(SKTypeface.FromFamilyName("Consolas"))) { TextSize = 20 };
+            _textParameters = new TextParameters("Consolas")
+            {
+                ParagraphFirstLineIndent = 0
+            };
+
+            _paint = _textParameters.RegularTextPaint;
         }
 
         [TearDown]
         public void TearDown()
         {
+            _textParameters?.Dispose();
             _paint?.Dispose();
         }
 
@@ -543,8 +549,29 @@ namespace TextPaint.Tests
             var title = result.First() as DrawingText;
             title.ShouldNotBeNull();
             title.ShouldSatisfyAllConditions(
-                () => title.Paint.TextSize.ShouldBe(24),
+                () => title.Paint.TextSize.ShouldBe(_textParameters.TitlePaint.TextSize),
                 () => title.Paint.TextAlign.ShouldBe(SKTextAlign.Center));
+        }
+
+        [Test]
+        public void Test13_ShouldProcessLongTitleTag()
+        {
+            // Arrange
+            var maxWidth = _textParameters.TitlePaint.MeasureText("aaa");
+            var b = _textParameters.TitlePaint.MeasureText("bbb");
+            var splitter = CreateSplitter("<title>aaa bbb</title>");
+
+            // Act
+            var result = splitter.GetPage(maxWidth, 100);
+            var strResult = result.ToStringArray();
+
+            // Assert
+            strResult.ShouldBe(new[]
+            {
+                "aaa",
+                SplitExtension.LineBreak,
+                "bbb"
+            });
         }
 
         private TextSplitter CreateSplitter(string text)
@@ -552,11 +579,6 @@ namespace TextPaint.Tests
             var readingInfo = new ReadingInfo(0, 0);
             var book = Fb2Parser.Load($"<FictionBook><body>{text}</body></FictionBook>");
             var splitter = new TextSplitter(book, readingInfo);
-            _textParameters = new TextParameters
-            {
-                RegularTextPaint = _paint,
-                ParagraphFirstLineIndent = 0
-            };
             splitter.ChangeParameters(_textParameters);
             return splitter;
         }
