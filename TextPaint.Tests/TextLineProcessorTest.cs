@@ -13,6 +13,7 @@ namespace TextPaint.Tests
         private TextLineProcessor _processor;
         private SKPaint _paint;
         private TextParameters _textParameters;
+        private TextStyle _style;
 
         [SetUp]
         public void Setup()
@@ -23,9 +24,11 @@ namespace TextPaint.Tests
                 RegularTextPaint = _paint,
                 ParagraphFirstLineIndent = 0
             };
-            _processor = new TextLineProcessor(_textParameters);
 
+            _processor = new TextLineProcessor(_textParameters);
             _processor.StartNewLine(true);
+
+            _style = new TextStyle();
         }
 
         [TearDown]
@@ -41,7 +44,7 @@ namespace TextPaint.Tests
             var text = new Text("aaa");
 
             // Act
-            var result = _processor.ProcessText(text, false, false, 100).ToStringArray();
+            var result = _processor.ProcessText(text, _style, 100).ToStringArray();
 
             // Assert
             result.ShouldBe(new []
@@ -58,7 +61,7 @@ namespace TextPaint.Tests
             var text = new Text("aaa bbb ccc");
 
             // Act
-            var result = _processor.ProcessText(text, false, false, maxWidth).ToStringArray();
+            var result = _processor.ProcessText(text, _style, maxWidth).ToStringArray();
 
             // Assert
             result.ShouldBe(new[]
@@ -79,7 +82,7 @@ namespace TextPaint.Tests
             var text = new Text("aaa bbb ccc");
 
             // Act
-            var result = _processor.ProcessText(text, false, false, maxWidth).ToStringArray();
+            var result = _processor.ProcessText(text, _style, maxWidth).ToStringArray();
 
             // Assert
             result.ShouldBe(new[]
@@ -105,7 +108,7 @@ namespace TextPaint.Tests
             };
             
             // Act
-            var result = ProcessText(texts, false, false, maxWidth);
+            var result = ProcessText(texts, _style, maxWidth);
 
             // Assert
             result.ShouldBe(new[]
@@ -125,7 +128,7 @@ namespace TextPaint.Tests
             var text = new Text("aaabbb");
             
             // Act
-            var result = _processor.ProcessText(text, false, false, maxWidth).ToStringArray();
+            var result = _processor.ProcessText(text, _style, maxWidth).ToStringArray();
 
             // Assert
             result.ShouldBe(new[]
@@ -148,7 +151,7 @@ namespace TextPaint.Tests
             };
 
             // Act
-            var result = ProcessText(texts, false, false, maxWidth);
+            var result = ProcessText(texts, _style, maxWidth);
 
             // Assert
             result.ShouldBe(new[]
@@ -176,7 +179,7 @@ namespace TextPaint.Tests
                 };
 
             // Act
-            var result = ProcessText(text, false, false, maxWidth);
+            var result = ProcessText(text, _style, maxWidth);
 
             // Assert
             result.ShouldBe(new[]
@@ -198,7 +201,7 @@ namespace TextPaint.Tests
             var text = new Text("aaa bbb ccc");
 
             // Act
-            var result = _processor.ProcessText(text, false, false, maxWidth).ToStringArray();
+            var result = _processor.ProcessText(text, _style, maxWidth).ToStringArray();
 
             // Assert
             result.ShouldBe(new[]
@@ -210,11 +213,11 @@ namespace TextPaint.Tests
             });
         }
 
-        private string[] ProcessText(string[] texts, bool isStrong, bool isEmphasis, float maxWidth)
+        private string[] ProcessText(string[] texts, TextStyle style, float maxWidth)
         {
             return texts
                 .Aggregate(Enumerable.Empty<DrawingItem>(), 
-                    (current, text) => current.Concat(_processor.ProcessText(new Text(text), isStrong, isEmphasis, maxWidth)))
+                    (current, text) => current.Concat(_processor.ProcessText(new Text(text), style, maxWidth)))
                 .ToStringArray();
         }
     }

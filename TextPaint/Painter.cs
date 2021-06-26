@@ -35,6 +35,11 @@ namespace TextPaint
                             isFirstInLine = false;
                         }
 
+                        if (text.Paint.TextAlign == SKTextAlign.Center)
+                        {
+                            point.X = info.Width / 2f;
+                        }
+
                         text.Paint.Color = SKColors.White;
                         canvas.DrawText(text.Text, point, text.Paint);
                         point.X += text.Paint.MeasureText(text.Text);

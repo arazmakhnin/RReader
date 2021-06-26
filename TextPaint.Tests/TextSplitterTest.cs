@@ -517,6 +517,29 @@ namespace TextPaint.Tests
             });
         }
 
+        [Test]
+        public void Test13_ShouldProcessTitleTag()
+        {
+            // Arrange
+            var splitter = CreateSplitter("<title>aaa</title>");
+
+            // Act
+            var result = splitter.GetPage(100, 100);
+            var strResult = result.ToStringArray(true);
+
+            // Assert
+            strResult.ShouldBe(new[]
+            {
+                "aaa"
+            });
+
+            var title = result.First() as DrawingText;
+            title.ShouldNotBeNull();
+            title.ShouldSatisfyAllConditions(
+                () => title.Paint.TextSize.ShouldBe(24),
+                () => title.Paint.TextAlign.ShouldBe(SKTextAlign.Center));
+        }
+
         private TextSplitter CreateSplitter(string text)
         {
             var readingInfo = new ReadingInfo(0, 0);

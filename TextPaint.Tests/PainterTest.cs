@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using Fb2;
 using Moq;
 using NUnit.Framework;
 using Shouldly;
@@ -14,6 +16,7 @@ namespace TextPaint.Tests
         private List<DrawingItem> _pageContent;
         private List<PaintInfo> _paintInfo;
         private SKPaint _paint;
+        private TextParameters _textParameters;
 
         [SetUp]
         public void Setup()
@@ -40,11 +43,11 @@ namespace TextPaint.Tests
         public void WithEmptyPage_ShouldDrawNothing()
         {
             // Arrange
-            _pageContent = new List<DrawingItem>();
+            var splitter = CreateSplitter("");
             var info = new SKImageInfo(100, 100);
 
             // Act
-            Painter.Paint(_page.Object, _canvas.Object, info);
+            Painter.Paint(splitter, _canvas.Object, info);
 
             // Assert
             _paintInfo.ShouldBeEmpty();
@@ -56,60 +59,49 @@ namespace TextPaint.Tests
         public void WithOnlyOneWord_ShouldDrawItInTheTopLeftCorner(int indent)
         {
             // Arrange
-            _pageContent = new List<DrawingItem>
-            {
-                new EmptySpace(indent),
-                new DrawingText("aaa", _paint)
-            };
+            var splitter = CreateSplitter("<p>aaa</p>");
+            _textParameters.ParagraphFirstLineIndent = indent;
+            splitter.ChangeParameters(_textParameters);
             var info = new SKImageInfo(100, 100);
 
             // Act
-            Painter.Paint(_page.Object, _canvas.Object, info);
+            Painter.Paint(splitter, _canvas.Object, info);
 
             // Assert
             _paintInfo.Count.ShouldBe(1);
-            Check(_paintInfo[0], "aaa", new SKPoint(indent, _paint.TextSize), _paint);
+            Check(0, "aaa", new SKPoint(indent, _paint.TextSize), _paint);
         }
         
         [Test]
         public void WithTwoItemsInOneLine_ShouldDrawOneLine()
         {
             // Arrange
-            _pageContent = new List<DrawingItem>
-            {
-                new DrawingText("aaa", _paint),
-                new DrawingText("bbb", _paint)
-            };
+            var splitter = CreateSplitter("<strong>aaa</strong><emphasis>bbb</emphasis>");
             var info = new SKImageInfo(100, 100);
 
             // Act
-            Painter.Paint(_page.Object, _canvas.Object, info);
+            Painter.Paint(splitter, _canvas.Object, info);
 
             // Assert
             _paintInfo.Count.ShouldBe(2);
-            Check(_paintInfo[0], "aaa", new SKPoint(0, _paint.TextSize), _paint);
-            Check(_paintInfo[1], "bbb", new SKPoint(_paint.MeasureText(_paintInfo[0].Text), _paint.TextSize), _paint);
+            Check(0, "aaa", new SKPoint(0, _paint.TextSize), p => p.Typeface.IsBold.ShouldBeTrue());
+            Check(1, "bbb", new SKPoint(_paint.MeasureText(_paintInfo[0].Text), _paint.TextSize), p => p.Typeface.IsItalic.ShouldBeTrue());
         }
 
         [Test]
         public void WithTwoParagraphs_ShouldDrawTwoLines()
         {
             // Arrange
-            _pageContent = new List<DrawingItem>
-            {
-                new DrawingText("aaa", _paint),
-                new LineBreak(_paint),
-                new DrawingText("bbb", _paint)
-            };
+            var splitter = CreateSplitter("<p>aaa</p><p>bbb</p>");
             var info = new SKImageInfo(100, 100);
 
             // Act
-            Painter.Paint(_page.Object, _canvas.Object, info);
+            Painter.Paint(splitter, _canvas.Object, info);
 
             // Assert
             _paintInfo.Count.ShouldBe(2);
-            Check(_paintInfo[0], "aaa", new SKPoint(0, _paint.TextSize), _paint);
-            Check(_paintInfo[1], "bbb", new SKPoint(0, _paint.TextSize * 2), _paint);
+            Check(0, "aaa", new SKPoint(_textParameters.ParagraphFirstLineIndent, _paint.TextSize), _paint);
+            Check(1, "bbb", new SKPoint(_textParameters.ParagraphFirstLineIndent, _paint.TextSize * 2), _paint);
         }
 
         [Test]
@@ -130,16 +122,51 @@ namespace TextPaint.Tests
 
             // Assert
             _paintInfo.Count.ShouldBe(2);
-            Check(_paintInfo[0], "aaa", new SKPoint(0, _paint.TextSize), _paint);
-            Check(_paintInfo[1], "bbb", new SKPoint(0, _paint.TextSize + bigFont.TextSize), bigFont);
+            Check(0, "aaa", new SKPoint(0, _paint.TextSize), _paint);
+            Check(1, "bbb", new SKPoint(0, _paint.TextSize + bigFont.TextSize), bigFont);
         }
 
-        private void Check(PaintInfo paintInfo, string text, SKPoint point, SKPaint paint)
+        [Test]
+        [TestCase("<title>aaa</title>")]
+        [TestCase("<title><p>aaa</p></title>")]
+        public void WithTitleTag_ShouldDrawTitle(string text)
         {
-            paintInfo.ShouldSatisfyAllConditions(
-                () => paintInfo.Text.ShouldBe(text),
-                () => paintInfo.Point.ShouldBe(point),
-                () => paintInfo.Paint.ShouldBe(paint));
+            // Arrange
+            var splitter = CreateSplitter(text);
+            var info = new SKImageInfo(100, 100);
+
+            // Act
+            Painter.Paint(splitter, _canvas.Object, info);
+
+            // Assert
+            _paintInfo.Count.ShouldBe(1);
+            Check(0, "aaa", new SKPoint(info.Width / 2, _paint.TextSize + 4), p => p.TextSize.ShouldBe(_paint.TextSize + 4));
+        }
+
+        private void Check(int index, string text, SKPoint point, SKPaint paint)
+        {
+            Check(index, text, point, p => p.ShouldBe(paint));
+        }
+
+        private void Check(int index, string text, SKPoint point, Action<SKPaint> checkPaint)
+        {
+            _paintInfo[index].ShouldSatisfyAllConditions(
+                () => _paintInfo[index].Text.ShouldBe(text),
+                () => _paintInfo[index].Point.ShouldBe(point),
+                () => checkPaint(_paintInfo[index].Paint));
+        }
+
+        private TextSplitter CreateSplitter(string text)
+        {
+            var readingInfo = new ReadingInfo(0, 0);
+            var book = Fb2Parser.Load($"<FictionBook><body>{text}</body></FictionBook>");
+            var splitter = new TextSplitter(book, readingInfo);
+            _textParameters = new TextParameters
+            {
+                RegularTextPaint = _paint
+            };
+            splitter.ChangeParameters(_textParameters);
+            return splitter;
         }
     }
 

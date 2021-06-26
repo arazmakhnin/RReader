@@ -36,9 +36,7 @@ namespace TextPaint
 
             var result = new ItemsAggregation(_currentPage.LineIndex, maxHeight);
             var lineProcessor = new TextLineProcessor(_textParameters);
-
-            var isStrong = false;
-            var isEmphasis = false;
+            var style = new TextStyle();
 
             var currentItemIndex = _currentPage.ItemIndex;
             for (var i = currentItemIndex; i < _book.Length; i++)
@@ -48,7 +46,7 @@ namespace TextPaint
                 switch (item)
                 {
                     case Text text:
-                        foreach (var textPart in lineProcessor.ProcessText(text, isStrong, isEmphasis, maxWidth))
+                        foreach (var textPart in lineProcessor.ProcessText(text, style, maxWidth))
                         {
                             result.TryAdd(textPart);
                             if (result.EndOfPage)
@@ -64,6 +62,13 @@ namespace TextPaint
                         result.StartNewItem();
                         break;
 
+                    case Title:
+                        currentItemIndex = i;
+                        result.StartNewItem();
+                        lineProcessor.StartNewLine(true);
+                        style.IsTitle = !style.IsTitle;
+                        break;
+
                     case Paragraph { TagType: TagType.Open }:
                         currentItemIndex = i;
                         result.StartNewItem();
@@ -75,11 +80,11 @@ namespace TextPaint
                         break;
 
                     case Strong:
-                        isStrong = !isStrong;
+                        style.IsStrong = !style.IsStrong;
                         break;
 
                     case Emphasis:
-                        isEmphasis = !isEmphasis;
+                        style.IsEmphasis = !style.IsEmphasis;
                         break;
 
                     case Fb2.Specification.EmptyLine:
@@ -137,6 +142,18 @@ namespace TextPaint
             RegularTextPaint = newParameters.RegularTextPaint;
             ParagraphFirstLineIndent = newParameters.ParagraphFirstLineIndent;
             EmptyLineSize = newParameters.EmptyLineSize;
+        }
+    }
+
+    public class TextStyle
+    {
+        public bool IsStrong { get; set; }
+        public bool IsEmphasis { get; set; }
+        public bool IsTitle { get; set; }
+
+        public bool Any()
+        {
+            return IsStrong || IsEmphasis || IsTitle;
         }
     }
 

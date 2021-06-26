@@ -17,9 +17,9 @@ namespace TextPaint
             _textParameters = textParameters;
         }
 
-        public IEnumerable<DrawingItem> ProcessText(Text text, bool isStrong, bool isEmphasis, float maxWidth)
+        public IEnumerable<DrawingItem> ProcessText(Text text, TextStyle style, float maxWidth)
         {
-            if (_isParagraphStart && _textParameters.ParagraphFirstLineIndent != 0)
+            if (_isParagraphStart && _textParameters.ParagraphFirstLineIndent != 0 && !style.IsTitle)
             {
                 yield return new EmptySpace(_textParameters.ParagraphFirstLineIndent);
                 _width = _textParameters.ParagraphFirstLineIndent;
@@ -27,16 +27,7 @@ namespace TextPaint
 
             var start = 0;
 
-            var paint = _textParameters.RegularTextPaint;
-            if (isStrong || isEmphasis)
-            {
-                var typeface = SKTypeface.FromFamilyName(
-                    _textParameters.RegularTextPaint.Typeface.FamilyName,
-                    isStrong ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal,
-                    SKFontStyleWidth.Normal,
-                    isEmphasis ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright);
-                paint = new SKPaint(new SKFont(typeface, _textParameters.RegularTextPaint.TextSize));
-            }
+            var paint = GetPaint(style);
 
             while (start < text.Value.Length)
             {
@@ -89,6 +80,33 @@ namespace TextPaint
 
                 start += charsToSpace;
             }
+        }
+
+        private SKPaint GetPaint(TextStyle style)
+        {
+            var paint = _textParameters.RegularTextPaint;
+            if (style.Any())
+            {
+                var fontStyleWeight = style.IsStrong ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal;
+                var fontStyleSlant = style.IsEmphasis ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright;
+                var textSize = _textParameters.RegularTextPaint.TextSize;
+                var textAlign = SKTextAlign.Left;
+                if (style.IsTitle)
+                {
+                    textSize += 4;
+                    textAlign = SKTextAlign.Center;
+                }
+
+                var typeface = SKTypeface.FromFamilyName(
+                    _textParameters.RegularTextPaint.Typeface.FamilyName,
+                    fontStyleWeight,
+                    SKFontStyleWidth.Normal,
+                    fontStyleSlant);
+
+                paint = new SKPaint(new SKFont(typeface, textSize)) { TextAlign = textAlign };
+            }
+
+            return paint;
         }
 
         private static int FindSpace(ReadOnlySpan<char> span, int from)
