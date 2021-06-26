@@ -12,6 +12,7 @@ namespace TextPaint.Tests
     public class TextSplitterTest
     {
         private SKPaint _paint;
+        private TextParameters _textParameters;
 
         [SetUp]
         public void Setup()
@@ -350,7 +351,7 @@ namespace TextPaint.Tests
             var splitter = CreateSplitter("<strong>aaa</strong>");
 
             // Act
-            var result = splitter.GetPage(100, 100).ToStringArray(true);
+            var result = splitter.GetPage(100, 100).ToStringArray();
 
             // Assert
             result.ShouldBe(new[]
@@ -360,20 +361,25 @@ namespace TextPaint.Tests
         }
 
         [Test]
-        public void Test6_ShouldProcessStrongTagExtended()
+        [TestCase(0)]
+        [TestCase(20)]
+        public void Test6_ShouldProcessStrongTagExtended(int indent)
         {
             // Arrange
-            var splitter = CreateSplitter("<p>asd <strong>aaa</strong> zxc</p>");
+            var splitter = CreateSplitter("<p>aaa <strong>bbb</strong> ccc</p>");
+            _textParameters.ParagraphFirstLineIndent = indent;
+            splitter.ChangeParameters(_textParameters);
 
             // Act
-            var result = splitter.GetPage(150, 100).ToStringArray(true);
+            var result = splitter.GetPage(150, 100).SkipWhile(i => i is EmptySpace).ToStringArray();
 
             // Assert
             result.ShouldBe(new[]
             {
-                "asd ",
-                "aaa-bold",
-                " zxc"
+                "aaa ",
+                "bbb-bold",
+                " ccc",
+                SplitExtension.LineBreak
             });
         }
 
@@ -404,7 +410,7 @@ namespace TextPaint.Tests
             var splitter = CreateSplitter("<emphasis>aaa</emphasis>");
 
             // Act
-            var result = splitter.GetPage(100, 100).ToStringArray(true);
+            var result = splitter.GetPage(100, 100).ToStringArray();
 
             // Assert
             result.ShouldBe(new[]
@@ -420,14 +426,15 @@ namespace TextPaint.Tests
             var splitter = CreateSplitter("<p>asd <emphasis>aaa</emphasis> zxc</p>");
 
             // Act
-            var result = splitter.GetPage(150, 100).ToStringArray(true);
+            var result = splitter.GetPage(150, 100).ToStringArray();
 
             // Assert
             result.ShouldBe(new[]
             {
                 "asd ",
                 "aaa-italic",
-                " zxc"
+                " zxc",
+                SplitExtension.LineBreak
             });
         }
 
@@ -525,7 +532,7 @@ namespace TextPaint.Tests
 
             // Act
             var result = splitter.GetPage(100, 100);
-            var strResult = result.ToStringArray(true);
+            var strResult = result.ToStringArray();
 
             // Assert
             strResult.ShouldBe(new[]
@@ -545,11 +552,12 @@ namespace TextPaint.Tests
             var readingInfo = new ReadingInfo(0, 0);
             var book = Fb2Parser.Load($"<FictionBook><body>{text}</body></FictionBook>");
             var splitter = new TextSplitter(book, readingInfo);
-            splitter.ChangeParameters(new TextParameters
+            _textParameters = new TextParameters
             {
                 RegularTextPaint = _paint,
                 ParagraphFirstLineIndent = 0
-            });
+            };
+            splitter.ChangeParameters(_textParameters);
             return splitter;
         }
     }
@@ -560,7 +568,7 @@ namespace TextPaint.Tests
         internal const string EmptyLine = "empty-line";
         internal const string EmptySpace= "empty-space:";
 
-        public static string[] ToStringArray(this IEnumerable<DrawingItem> items, bool ignoreLineBreaks = false)
+        public static string[] ToStringArray(this IEnumerable<DrawingItem> items)
         {
             var f = new SKFont();
 
@@ -572,12 +580,6 @@ namespace TextPaint.Tests
                 EmptySpace emptySpace => EmptySpace + emptySpace.Size,
                 _ => throw new ArgumentOutOfRangeException(nameof(i), i, null)
             });
-
-            if (ignoreLineBreaks)
-            {
-                query = query
-                    .Where(i => i != LineBreak);
-            }
 
             return query.ToArray();
         }

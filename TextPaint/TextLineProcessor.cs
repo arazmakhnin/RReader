@@ -25,6 +25,8 @@ namespace TextPaint
                 _width = _textParameters.ParagraphFirstLineIndent;
             }
 
+            _isParagraphStart = false;
+
             var start = 0;
 
             var paint = GetPaint(style);
