@@ -63,11 +63,27 @@ namespace TextPaint
                         result.StartNewItem();
                         break;
 
-                    case Title:
+                    case Title title:
                         currentItemIndex = i;
                         result.StartNewItem();
                         lineProcessor.StartNewLine(true);
                         style.IsTitle = !style.IsTitle;
+
+                        if (title.TagType == TagType.Close)
+                        {
+                            result.TryAdd(new EmptyLine(_textParameters.EmptyLineSize));
+                        }
+                        break;
+
+                    case Section { TagType: TagType.Open }:
+                        currentItemIndex = i + 1;
+                        result.StartNewItem();
+                        lineProcessor.StartNewLine(true);
+
+                        if (!result.Empty)
+                        {
+                            result.StopCurrentPage();
+                        }
                         break;
 
                     case Paragraph { TagType: TagType.Open }:

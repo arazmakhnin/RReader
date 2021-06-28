@@ -543,7 +543,8 @@ namespace TextPaint.Tests
             // Assert
             strResult.ShouldBe(new[]
             {
-                "aaa"
+                "aaa",
+                SplitExtension.EmptyLine
             });
 
             var title = result.First() as DrawingText;
@@ -558,20 +559,45 @@ namespace TextPaint.Tests
         {
             // Arrange
             var maxWidth = _textParameters.TitlePaint.MeasureText("aaa");
-            var b = _textParameters.TitlePaint.MeasureText("bbb");
             var splitter = CreateSplitter("<title>aaa bbb</title>");
 
             // Act
-            var result = splitter.GetPage(maxWidth, 100);
-            var strResult = result.ToStringArray();
+            var result = splitter.GetPage(maxWidth, 100).ToStringArray();
 
             // Assert
-            strResult.ShouldBe(new[]
+            result.ShouldBe(new[]
             {
                 "aaa",
                 SplitExtension.LineBreak,
+                "bbb",
+                SplitExtension.EmptyLine
+            });
+        }
+
+        [Test]
+        [TestCase("<p>aaa</p><section>bbb</section>", new[] {"aaa", SplitExtension.LineBreak})]
+        [TestCase("<section>aaa</section><section>bbb</section>", new[] { "aaa" })]
+        public void Test14_ShouldProcessSectionTag(string text, string[] firstPage)
+        {
+            // Arrange
+            var splitter = CreateSplitter(text);
+
+            // Act
+            var result1 = splitter.GetPage(100, 100).ToStringArray();
+            var canNext1 = splitter.NextPage();
+            var result2 = splitter.GetPage(100, 100).ToStringArray();
+            var canNext2 = splitter.NextPage();
+
+            // Assert
+            result1.ShouldBe(firstPage);
+
+            result2.ShouldBe(new []
+            {
                 "bbb"
             });
+
+            canNext1.ShouldBeTrue();
+            canNext2.ShouldBeFalse();
         }
 
         private TextSplitter CreateSplitter(string text)
